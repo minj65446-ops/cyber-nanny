@@ -239,6 +239,14 @@
     border:1px solid var(--line);background:#fcfcff;cursor:pointer;transition:.15s;user-select:none;
   }
   .habit:hover{border-color:#d6d8e6;background:#f8f9ff}
+  .habit .del{opacity:1;color:var(--ink-3)}
+  .habit .del:hover{color:var(--danger);background:var(--danger-soft)}
+  .habit-add{display:flex;gap:8px;margin-top:14px}
+  .habit-add input{
+    flex:1;min-width:0;font:inherit;font-size:12.5px;padding:8px 12px;border-radius:10px;
+    border:1px solid var(--line);background:#fafbfe;color:var(--ink);outline:none;transition:.15s;
+  }
+  .habit-add input:focus{border-color:#bdb4ff;background:#fff;box-shadow:0 0 0 3px rgba(85,70,255,.09)}
   .habit.on{border-color:#cfc8ff;background:linear-gradient(90deg,#f6f4ff,#fdfdff)}
   .h-ico{
     width:28px;height:28px;border-radius:9px;flex:none;display:grid;place-items:center;
@@ -355,7 +363,7 @@
       <div class="logo">CN</div>
       <div>
         <h1>赛博保姆</h1>
-        <span>CYBER NANNY v1.0</span>
+        <span>CYBER NANNY v1.1</span>
       </div>
     </div>
     <div class="clock"><b id="clock">--:--</b> <span id="datestr"></span></div>
@@ -472,6 +480,10 @@
       </h2>
       <div class="habits" id="habitList"></div>
       <div class="cups" id="cups"></div>
+      <div class="habit-add">
+        <input type="text" id="habitInput" placeholder="加个习惯，比如：早起拉伸 / 背单词" maxlength="20" />
+        <button class="btn tiny" id="addHabit">添加</button>
+      </div>
     </div>
 
     <!-- 数据 -->
@@ -516,8 +528,10 @@
         <label class="switch" id="voiceSwitch"><span class="sw"></span>语音播报</label>
         <div style="display:flex;gap:8px;align-items:flex-end">
           <button class="btn ghost tiny" id="exportBtn" style="flex:1">导出数据</button>
+          <button class="btn ghost tiny" id="importBtn" style="flex:1">导入数据</button>
           <button class="btn ghost tiny" id="resetBtn" style="flex:1;color:var(--danger)">清空重来</button>
         </div>
+        <input type="file" id="importFile" accept="application/json,.json" style="display:none" />
       </div>
     </div>
 
@@ -639,13 +653,27 @@ function defaultDaily(){
            wake: false, exercise: false, read: false, sleep: false,
            sitAt: Date.now(), lastStand: Date.now() };
 }
+function defaultHabits(){
+  return [
+    { id:'wake',     name:'按时起床',    icon:'sun',  points:15 },
+    { id:'exercise', name:'运动 20 分钟', icon:'bolt', points:10 },
+    { id:'read',     name:'阅读 / 学习',  icon:'book', points:10 },
+    { id:'sleep',    name:'按时睡觉',    icon:'moon', points:10 }
+  ];
+}
 const DEFAULT_STATE = {
   persona: 'savage',
   daily: defaultDaily(),
   tasks: [],
   archive: {},
   totalPoints: 0,
-  settings: { wake: '07:00', sleep: '23:30', waterGoal: 8, sitMin: 45, voice: false }
+  settings: {
+    wake: '07:00', sleep: '23:30', waterGoal: 8, sitMin: 45, voice: false,
+    habits: defaultHabits(),
+    pomo: { focus: 25, short: 5, long: 15, longAfter: 4 }
+  },
+  pomo: { phase:'focus', total:25*60, remain:25*60, running:false, round:0,
+          savedAt:Date.now(), lastFocusTotal:25*60 }
 };
 let state = load();
 let demoMode = false;   // ?demo=1 时开启，不写盘
@@ -656,6 +684,9 @@ function load(){
     if(!raw) return structuredClone(DEFAULT_STATE);
     let s = Object.assign(structuredClone(DEFAULT_STATE), JSON.parse(raw));
     s.settings = Object.assign({}, DEFAULT_STATE.settings, s.settings || {});
+    if(!Array.isArray(s.settings.habits) || !s.settings.habits.length) s.settings.habits = defaultHabits();
+    s.settings.pomo = Object.assign({}, DEFAULT_STATE.settings.pomo, s.settings.pomo || {});
+    s.pomo = Object.assign({}, structuredClone(DEFAULT_STATE.pomo), s.pomo || {});
     s.archive = s.archive || {};
     s.tasks = s.tasks || [];
     if(!s.daily || s.daily.date !== dkey()) s = rollover(s);
@@ -773,33 +804,36 @@ function escapeHtml(s){
 }
 
 /* ---------- 渲染：打卡 ---------- */
-const HABITS = [
-  { key:'wake',     name:'按时起床', sub:'', icon:'sun'  },
-  { key:'exercise', name:'运动 20 分钟', sub:'', icon:'bolt' },
-  { key:'read',     name:'阅读 / 学习', sub:'', icon:'book' },
-  { key:'sleep',    name:'按时睡觉', sub:'', icon:'moon' }
-];
+/* 习惯列表由 state.settings.habits 提供（可在界面增删），ICONS 为可选图标 */
 const ICONS = {
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>',
   bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>',
   book:'<path d="M4 19V5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19a2 2 0 002 2h13"/>',
-  moon:'<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>'
+  moon:'<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>',
+  star:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+  heart:'<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/>',
+  shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  dumbbell:'<path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11M3 12h1M20 12h1"/>',
+  flag:'<path d="M4 22V4a1 1 0 011-1h6l1 2h8a1 1 0 011 1v8a1 1 0 01-1 1h-9l-1-2H5"/><path d="M4 22H2"/>',
+  repeat:'<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/>'
 };
 function renderHabits(){
+  const habits = state.settings.habits || [];
   const box = $('#habitList');
-  box.innerHTML = HABITS.map(h => `
-    <div class="habit ${state.daily[h.key] ? 'on':''}" data-habit="${h.key}">
-      <div class="h-ico"><svg viewBox="0 0 24 24">${ICONS[h.icon]}</svg></div>
-      <div class="h-name">${h.name}${h.sub ? `<small>${h.sub}</small>` : ''}</div>
-      <div class="h-val">${state.daily[h.key] ? 'DONE' : '+10'}</div>
+  box.innerHTML = habits.map(h => `
+    <div class="habit ${state.daily[h.id] ? 'on':''}" data-habit="${h.id}">
+      <div class="h-ico"><svg viewBox="0 0 24 24">${ICONS[h.icon] || ICONS.star}</svg></div>
+      <div class="h-name">${escapeHtml(h.name)}</div>
+      <div class="h-val">${state.daily[h.id] ? 'DONE' : '+' + (h.points || 10)}</div>
+      <button class="del" data-del-habit="${h.id}" title="删除该习惯">&times;</button>
     </div>`).join('');
 
   const goal = state.settings.waterGoal || 8;
   $('#cups').innerHTML = Array.from({length: goal}, (_, i) =>
     `<div class="cup ${i < state.daily.water ? 'on':''}" data-cup="${i+1}" title="第 ${i+1} 杯"><span>${i+1}</span></div>`).join('');
 
-  const total = HABITS.length + 1;
-  const got = HABITS.filter(h => state.daily[h.key]).length + (state.daily.water >= goal ? 1 : 0);
+  const total = habits.length + 1;
+  const got = habits.filter(h => state.daily[h.id]).length + (state.daily.water >= goal ? 1 : 0);
   $('#habitHint').textContent = `${got} / ${total}`;
   renderMetrics();
   renderReport();
@@ -841,7 +875,8 @@ function renderMetrics(){
 }
 function habitScore(){
   const goal = state.settings.waterGoal || 8;
-  const items = HABITS.map(h => state.daily[h.key] ? 1 : 0).concat([Math.min(1, state.daily.water / goal)]);
+  const habits = state.settings.habits || [];
+  const items = habits.map(h => state.daily[h.id] ? 1 : 0).concat([Math.min(1, state.daily.water / goal)]);
   const tasks = state.tasks;
   const taskRate = tasks.length ? tasks.filter(t => t.done).length / tasks.length : 0;
   const base = items.reduce((a, b) => a + b, 0) / items.length;
@@ -850,14 +885,14 @@ function habitScore(){
 function streak(){
   let n = 0;
   const d = new Date();
+  const habits = state.settings.habits || [];
   if(habitScore() >= 60) n = 1;
   for(let i = 1; i <= 60; i++){
     const dd = new Date(d); dd.setDate(d.getDate() - i);
     const rec = state.archive[dkey(dd)];
     if(!rec) break;
     const goal = state.settings.waterGoal || 8;
-    const items = [rec.wake, rec.exercise, rec.read, rec.sleep].map(Boolean)
-      .concat([Math.min(1, (rec.water || 0) / goal)]);
+    const items = habits.map(h => !!rec[h.id]).concat([Math.min(1, (rec.water || 0) / goal)]);
     const base = items.reduce((a, b) => a + b, 0) / items.length;
     if(base >= 0.6) n++; else break;
   }
@@ -888,7 +923,7 @@ function renderReport(){
   const d = new Date();
   const p = n => String(n).padStart(2,'0');
   const goal = state.settings.waterGoal || 8;
-  const habits = HABITS.filter(h => state.daily[h.key]).map(h => h.name);
+  const habits = (state.settings.habits || []).filter(h => state.daily[h.id]).map(h => h.name);
   const tasks = state.tasks;
   const done = tasks.filter(t => t.done).length;
   const overdue = tasks.filter(isOverdue).length;
@@ -954,17 +989,46 @@ $('#taskList').addEventListener('click', e => {
 
 /* ---------- 交互：打卡 ---------- */
 $('#habitList').addEventListener('click', e => {
+  const delBtn = e.target.closest('[data-del-habit]');
+  if(delBtn){
+    const id = delBtn.dataset.delHabit;
+    if((state.settings.habits || []).length <= 1){ toast('至少保留一个习惯'); return; }
+    state.settings.habits = state.settings.habits.filter(h => h.id !== id);
+    save(); renderHabits(); toast('习惯已删除');
+    return;
+  }
   const row = e.target.closest('[data-habit]'); if(!row) return;
-  const k = row.dataset.habit;
-  state.daily[k] = !state.daily[k];
-  if(state.daily[k]){
-    addPoints(k === 'wake' ? PTS.wake : PTS.habit, HABITS.find(h => h.key === k).name);
-    say(k === 'wake' ? 'wake' : k === 'sleep' ? 'sleep' : 'praise', { force: true });
+  const id = row.dataset.habit;
+  const habit = (state.settings.habits || []).find(h => h.id === id);
+  if(!habit) return;
+  const pts = habit.points || PTS.habit;
+  state.daily[id] = !state.daily[id];
+  if(state.daily[id]){
+    addPoints(pts, habit.name);
+    say(id === 'wake' ? 'wake' : id === 'sleep' ? 'sleep' : 'praise', { force: true });
   }else{
-    deduct(k === 'wake' ? PTS.wake : PTS.habit, '撤销打卡');
+    deduct(pts, '撤销打卡');
   }
   save(); renderHabits();
 });
+
+/* 新增自定义习惯 */
+const HABIT_ICON_POOL = ['star','heart','shield','dumbbell','flag','repeat','bolt','book','sun','moon'];
+function addHabit(){
+  const inp = $('#habitInput');
+  const name = inp.value.trim();
+  if(!name){ toast('给习惯起个名'); return; }
+  if((state.settings.habits || []).length >= 12){ toast('习惯最多 12 个，先删掉旧的'); return; }
+  state.settings.habits.push({
+    id: 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2,5),
+    name, icon: HABIT_ICON_POOL[Math.floor(Math.random() * HABIT_ICON_POOL.length)],
+    points: PTS.habit
+  });
+  inp.value = '';
+  save(); renderHabits(); toast('习惯已添加：' + name);
+}
+$('#addHabit').addEventListener('click', addHabit);
+$('#habitInput').addEventListener('keydown', e => { if(e.key === 'Enter') addHabit(); });
 $('#cups').addEventListener('click', e => {
   const cup = e.target.closest('[data-cup]'); if(!cup) return;
   const idx = Number(cup.dataset.cup);
@@ -1018,63 +1082,113 @@ document.querySelectorAll('.quick button').forEach(btn => {
   });
 });
 
-/* ---------- 番茄钟 ---------- */
-let pomo = { total: 25 * 60, remain: 25 * 60, running: false, tid: null };
+/* ---------- 番茄钟（工作-休息循环，状态可跨刷新恢复） ---------- */
+let pomoTid = null;
+
 function renderPomo(){
-  const m = Math.floor(pomo.remain / 60), s = pomo.remain % 60;
+  const p = state.pomo;
+  const m = Math.floor(p.remain / 60), s = p.remain % 60;
   $('#pomoTime').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  $('#pomoState').textContent = pomo.running ? 'FOCUS' : (pomo.remain === pomo.total ? 'READY' : 'PAUSED');
-  $('#pomoStart').textContent = pomo.running ? '暂停' : (pomo.remain === pomo.total ? '开始专注' : '继续');
-  $('#pomoHint').textContent = pomo.running ? '进行中' : (pomo.remain === pomo.total ? '待命' : '已暂停');
+  $('#pomoState').textContent = p.running
+    ? (p.phase === 'break' ? '休息中' : '专注中')
+    : (p.remain === p.total ? '就绪' : '已暂停');
+  $('#pomoStart').textContent = p.running ? '暂停' : (p.remain === p.total ? (p.phase === 'break' ? '开始休息' : '开始专注') : '继续');
+  $('#pomoHint').textContent = p.phase === 'break' ? '休息中' : (p.running ? '专注中' : (p.remain === p.total ? '待命' : '已暂停'));
   const C = 2 * Math.PI * 54;
-  const ratio = 1 - pomo.remain / pomo.total;
+  const ratio = 1 - p.remain / p.total;
   $('#ringProg').style.strokeDashoffset = String(-C * ratio);
 }
-function pomoTick(){
-  if(!pomo.running) return;
-  pomo.remain--;
-  if(pomo.remain <= 0){
-    pomo.running = false;
-    clearInterval(pomo.tid); pomo.tid = null;
-    const mins = Math.round(pomo.total / 60);
+function pomoSave(){ if(demoMode) return; state.pomo.savedAt = Date.now(); save(); }
+
+function pomoComplete(){
+  const p = state.pomo;
+  clearInterval(pomoTid); pomoTid = null;
+  p.running = false;
+  const cfg = state.settings.pomo || {};
+  if(p.phase === 'focus'){
+    const mins = Math.round(p.total / 60);
     state.daily.focusMin += mins;
     state.daily.pomos += 1;
-    state.daily.points += PTS.pomo;
-    state.totalPoints += PTS.pomo;
-    save();
-    renderPomo(); renderMetrics(); renderReport();
-    say('praise', { force: true });
-    toast(`专注完成 +${PTS.pomo} 分 · 起来动一动`);
+    addPoints(PTS.pomo, '专注完成');
+    p.round += 1;
+    const longAfter = cfg.longAfter || 4;
+    const isLong = p.round % longAfter === 0;
+    p.phase = 'break';
+    p.total = (isLong ? (cfg.long||15) : (cfg.short||5)) * 60;
+    p.remain = p.total;
+    toast(isLong ? `完成 ${mins} 分钟专注，进入 ${cfg.long||15} 分钟长休息` : `专注完成 +${PTS.pomo} 分，休息 ${cfg.short||5} 分钟`);
     beep();
-    return;
+    p.running = true;
+    pomoTid = setInterval(pomoTick, 1000);
+  }else{
+    p.phase = 'focus';
+    p.total = p.lastFocusTotal || (cfg.focus||25) * 60;
+    p.remain = p.total;
+    toast('休息结束，开始下一轮专注');
+    say('focus', { force: true });
+    beep();
   }
+  pomoSave(); renderPomo(); renderMetrics(); renderReport();
+}
+
+function pomoTick(){
+  const p = state.pomo;
+  if(!p.running) return;
+  p.remain--;
+  if(p.remain <= 0){ p.remain = 0; pomoComplete(); return; }
   renderPomo();
+  if(p.remain % 10 === 0) pomoSave(); // 每 10 秒落盘，防刷新丢进度
 }
 $('#pomoStart').addEventListener('click', () => {
-  if(pomo.running){
-    pomo.running = false;
-    clearInterval(pomo.tid); pomo.tid = null;
+  const p = state.pomo;
+  if(p.running){
+    p.running = false;
+    clearInterval(pomoTid); pomoTid = null;
+    pomoSave();
   }else{
-    pomo.running = true;
-    pomo.tid = setInterval(pomoTick, 1000);
-    say('focus', { force: true });
+    if(p.remain <= 0) p.remain = p.total;
+    p.running = true;
+    pomoTid = setInterval(pomoTick, 1000);
+    say(p.phase === 'break' ? 'water' : 'focus', { force: true });
   }
   renderPomo();
 });
 $('#pomoReset').addEventListener('click', () => {
-  clearInterval(pomo.tid); pomo.tid = null;
-  pomo.running = false; pomo.remain = pomo.total;
-  renderPomo();
+  clearInterval(pomoTid); pomoTid = null;
+  const p = state.pomo;
+  p.running = false;
+  p.phase = 'focus';
+  p.total = p.lastFocusTotal || (state.settings.pomo?.focus||25) * 60;
+  p.remain = p.total;
+  pomoSave(); renderPomo();
 });
 document.querySelectorAll('[data-focus]').forEach(b => {
   b.addEventListener('click', () => {
-    clearInterval(pomo.tid); pomo.tid = null;
-    pomo.running = false;
-    pomo.total = Number(b.dataset.focus) * 60;
-    pomo.remain = pomo.total;
-    renderPomo();
+    clearInterval(pomoTid); pomoTid = null;
+    const p = state.pomo;
+    p.running = false;
+    p.phase = 'focus';
+    p.total = Number(b.dataset.focus) * 60;
+    p.lastFocusTotal = p.total;
+    p.remain = p.total;
+    pomoSave(); renderPomo();
   });
 });
+function restorePomo(){
+  const p = state.pomo;
+  if(p.running){
+    const elapsed = Math.floor((Date.now() - (p.savedAt || Date.now())) / 1000);
+    if(elapsed > 0){
+      p.remain -= elapsed;
+      if(p.remain <= 0){          // 离线期间已走完：不自动结算，重置为就绪
+        p.running = false;
+        p.remain = p.total;
+        toast('离线期间专注计时已结束，已重置为就绪');
+      }
+    }
+    if(p.running){ pomoTid = setInterval(pomoTick, 1000); }
+  }
+}
 function beep(){
   try{
     const ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -1123,9 +1237,8 @@ function startNag(){
     state.tasks.forEach(t => {
       if(isOverdue(t) && !t._nagged){
         t._nagged = true;
-        state.daily.points += PTS.overdue;
-        save(); renderPoints(); renderTasks();
-        toast(`任务逾期 ${PTS.overdue} 分：${t.title}`);
+        deduct(Math.abs(PTS.overdue), '任务逾期：' + t.title);
+        renderTasks();
       }
     });
   }, 75000);
@@ -1197,6 +1310,38 @@ function bindSettings(){
     URL.revokeObjectURL(a.href);
     toast('数据已导出');
   });
+  $('#importBtn').addEventListener('click', () => $('#importFile').click());
+  $('#importFile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const parsed = JSON.parse(reader.result);
+        let incoming = parsed && parsed.state ? parsed.state : parsed;
+        if(!incoming || !incoming.daily || !incoming.settings || !Array.isArray(incoming.tasks)){
+          toast('文件格式不对，无法导入'); return;
+        }
+        incoming.settings = Object.assign({}, DEFAULT_STATE.settings, incoming.settings || {});
+        if(!Array.isArray(incoming.settings.habits) || !incoming.settings.habits.length) incoming.settings.habits = defaultHabits();
+        incoming.settings.pomo = Object.assign({}, DEFAULT_STATE.settings.pomo, incoming.settings.pomo || {});
+        incoming.pomo = Object.assign({}, structuredClone(DEFAULT_STATE.pomo), incoming.pomo || {});
+        incoming.archive = incoming.archive || {};
+        if(!incoming.daily || incoming.daily.date !== dkey()) incoming = rollover(incoming);
+        // 导入后不恢复运行中的计时，避免残留定时器
+        clearInterval(pomoTid); pomoTid = null;
+        incoming.pomo.running = false;
+        incoming.pomo.savedAt = Date.now();
+        state = incoming;
+        save(); renderAll();
+        toast('数据已导入');
+      }catch(err){
+        toast('导入失败：文件损坏或格式不对');
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(f);
+  });
   $('#copyReport').addEventListener('click', async () => {
     try{
       await navigator.clipboard.writeText($('#report').textContent);
@@ -1264,7 +1409,7 @@ function seedDemo(){
   tickClock();
   setInterval(tickClock, 1000);
   startNag();
-  $('#pomoTime').textContent = '25:00';
+  restorePomo();
   renderPomo();
   setTimeout(() => say('greet', { force: true }), 600);
   // 首次进入请求语音上下文授权不算必要；保持静默
