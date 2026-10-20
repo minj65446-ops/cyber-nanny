@@ -1,0 +1,14 @@
+# 代码
+__pycache__/
+*.pyc
+_check.js
+_test.js
+
+# 运行时产物
+nanny_log.txt
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

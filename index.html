@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CYBER NANNY · 赛博保姆</title>
+<meta name="description" content="赛博保姆：离线可用的打卡 / 任务 / 番茄钟 / 久坐提醒 / 积分惩罚 / 日报工具，带四档人格与二次元立绘表情差分。" />
+<link rel="icon" type="image/webp" href="assets/nanny-normal.webp" />
+<meta property="og:title" content="CYBER NANNY · 赛博保姆" />
+<meta property="og:description" content="会盯着你干活的赛博保姆。四档人格，四种表情。" />
+<meta property="og:image" content="assets/nanny-normal.webp" />
+<style>
+  :root{
+    --bg:#f4f5fa;
+    --panel:#ffffff;
+    --ink:#12141c;
+    --ink-2:#4a4f60;
+    --ink-3:#8b90a3;
+    --line:#e6e8f0;
+    --accent:#5546ff;
+    --accent-soft:#eeecff;
+    --cyan:#00b3a4;
+    --danger:#e5484d;
+    --danger-soft:#ffedee;
+    --warn:#f0a020;
+    --ok:#12a150;
+    --radius:16px;
+    --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:
+      radial-gradient(900px 500px at 12% -10%, #e8e6ff 0%, transparent 60%),
+      radial-gradient(700px 400px at 92% 0%, #dff8f5 0%, transparent 55%),
+      linear-gradient(#f7f8fc,#f2f3f9 60%,#f5f6fb);
+    color:var(--ink);
+    min-height:100vh;
+    padding:22px 18px 80px;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(85,70,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(85,70,255,.045) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(circle at 50% 0%,#000 0%,transparent 75%);
+  }
+  .wrap{max-width:1120px;margin:0 auto;position:relative;z-index:1}
+
+  /* ---------- topbar ---------- */
+  .topbar{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    background:rgba(255,255,255,.82);
+    border:1px solid var(--line);
+    border-radius:14px;padding:12px 16px;
+    box-shadow:0 1px 2px rgba(18,20,28,.04),0 12px 28px -18px rgba(18,20,28,.22);
+    backdrop-filter:blur(10px);
+  }
+  .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+  .logo{
+    width:34px;height:34px;border-radius:10px;flex:none;
+    background:linear-gradient(140deg,#5546ff,#8f7dff 55%,#00b3a4);
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px;
+    box-shadow:0 6px 16px -6px rgba(85,70,255,.7);
+    letter-spacing:.5px;
+  }
+  .brand h1{font-size:15px;letter-spacing:.4px;font-weight:750}
+  .brand span{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:1.6px;margin-top:1px}
+  .clock{font-family:var(--mono);font-size:13px;color:var(--ink-2);letter-spacing:.6px}
+  .clock b{color:var(--ink);font-weight:700}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    border:1px solid var(--line);background:#fff;border-radius:999px;
+    padding:6px 12px;font-size:12px;color:var(--ink-2);cursor:pointer;
+    transition:.16s;
+  }
+  .chip:hover{border-color:#cfd2e0;transform:translateY(-1px)}
+  .points{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--accent-soft);border:1px solid #ddd8ff;color:#3a2ee0;
+    border-radius:999px;padding:7px 14px;font-weight:750;font-size:13px;
+  }
+  .points em{font-family:var(--mono);font-style:normal;font-size:15px}
+  .points.neg{background:var(--danger-soft);border-color:#ffd5d7;color:#c0252a}
+
+  /* ---------- hero ---------- */
+  .hero{
+    margin-top:16px;display:grid;grid-template-columns:132px 1fr;gap:20px;
+    background:linear-gradient(180deg,#fff,#fdfdff);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;position:relative;overflow:hidden;
+    box-shadow:0 1px 2px rgba(18,20,28,.04),0 26px 50px -34px rgba(18,20,28,.35);
+  }
+  .hero::after{
+    content:"";position:absolute;right:-60px;top:-80px;width:260px;height:260px;border-radius:50%;
+    background:radial-gradient(circle,rgba(85,70,255,.10),transparent 68%);
+  }
+  .avatar{position:relative;width:136px;height:136px;display:grid;place-items:center;justify-self:center}
+  .char{
+    width:136px;height:136px;border-radius:50%;object-fit:cover;object-position:50% 16%;
+    background:#f5f4f7;
+    border:3px solid #fff;
+    box-shadow:0 0 0 1.5px #e6e8f0,0 16px 32px -16px rgba(85,70,255,.6);
+    animation:float 5.5s ease-in-out infinite;
+    transition:filter .3s;
+  }
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .char.swap{animation:swap .34s cubic-bezier(.3,1.5,.5,1),float 5.5s ease-in-out infinite}
+  @keyframes swap{0%{transform:scale(.92) rotate(-2deg);opacity:.55}100%{transform:scale(1) rotate(0);opacity:1}}
+  .char[data-expr="angry"]{box-shadow:0 0 0 1.5px #ffd0d2,0 16px 32px -16px rgba(229,72,77,.6)}
+  .char[data-expr="happy"]{box-shadow:0 0 0 1.5px #cfc8ff,0 16px 32px -16px rgba(85,70,255,.6)}
+  .char-fallback{display:none}
+  .char-fallback svg{width:118px;height:118px;filter:drop-shadow(0 12px 22px rgba(85,70,255,.22))}
+  .avatar.noimg .char{display:none}
+  .avatar.noimg .char-fallback{display:grid;place-items:center}
+  .expr-tag{
+    position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:1.2px;color:#fff;background:#12141c;
+    padding:2.5px 9px;border-radius:99px;opacity:.9;white-space:nowrap;pointer-events:none;
+  }
+  .eyes{animation:blink 5.6s infinite}
+  @keyframes blink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.12)}98%{transform:scaleY(1)}}
+  .scan{animation:scan 3.4s ease-in-out infinite}
+  @keyframes scan{0%,100%{opacity:.25}50%{opacity:.85}}
+  .speech{display:flex;flex-direction:column;justify-content:center;gap:12px;position:relative;z-index:1}
+  .bubble{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;font-size:16px;line-height:1.62;font-weight:600;
+    box-shadow:0 10px 26px -22px rgba(18,20,28,.6);
+    position:relative;min-height:66px;display:flex;align-items:center;
+  }
+  .bubble::before{
+    content:"";position:absolute;left:-7px;top:26px;width:12px;height:12px;background:#fff;
+    border-left:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg);
+  }
+  .bubble.flash{animation:pop .35s ease}
+  @keyframes pop{0%{transform:scale(.98);opacity:.4}100%{transform:scale(1);opacity:1}}
+  .quick{display:flex;gap:8px;flex-wrap:wrap}
+  .quick button{
+    font:inherit;font-size:12.5px;padding:8px 14px;border-radius:10px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--ink-2);transition:.15s;
+  }
+  .quick button:hover{background:var(--accent-soft);border-color:#d8d2ff;color:#3a2ee0}
+  .quick button:active{transform:scale(.97)}
+
+  /* ---------- grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:16px}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;
+    box-shadow:0 1px 2px rgba(18,20,28,.04),0 18px 40px -34px rgba(18,20,28,.4);
+  }
+  .card h2{
+    font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-3);
+    font-weight:750;display:flex;align-items:center;gap:8px;margin-bottom:14px;
+  }
+  .card h2 svg{width:14px;height:14px;stroke:var(--accent)}
+  .card h2 .hint{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;font-size:11px;color:var(--ink-3)}
+  .span-7{grid-column:span 7}
+  .span-5{grid-column:span 5}
+  .span-4{grid-column:span 4}
+  .span-6{grid-column:span 6}
+  .span-12{grid-column:span 12}
+
+  /* tasks */
+  .task-add{display:flex;gap:8px;margin-bottom:12px}
+  .task-add input[type=text]{
+    flex:1;min-width:0;font:inherit;font-size:13px;padding:9px 12px;border-radius:10px;
+    border:1px solid var(--line);background:#fafbfe;color:var(--ink);outline:none;transition:.15s;
+  }
+  .task-add input[type=text]:focus{border-color:#bdb4ff;background:#fff;box-shadow:0 0 0 3px rgba(85,70,255,.09)}
+  .task-add input[type=datetime-local]{
+    font:inherit;font-family:var(--mono);font-size:11.5px;padding:8px 8px;border-radius:10px;
+    border:1px solid var(--line);background:#fafbfe;color:var(--ink-2);outline:none;width:172px;
+  }
+  .btn{
+    font:inherit;font-size:13px;font-weight:650;padding:9px 16px;border-radius:10px;border:1px solid transparent;
+    background:var(--accent);color:#fff;cursor:pointer;transition:.15s;white-space:nowrap;
+  }
+  .btn:hover{background:#4636f2;transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn.ghost{background:#fff;border-color:var(--line);color:var(--ink-2)}
+  .btn.ghost:hover{background:#f7f8fc;border-color:#cfd2e0}
+  .btn.tiny{font-size:11.5px;padding:6px 11px;border-radius:8px}
+
+  .tasks{display:flex;flex-direction:column;gap:8px;max-height:264px;overflow:auto}
+  .tasks::-webkit-scrollbar{width:6px}
+  .tasks::-webkit-scrollbar-thumb{background:#dcdeea;border-radius:99px}
+  .task{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;
+    border:1px solid var(--line);background:#fcfcff;transition:.15s;
+  }
+  .task:hover{border-color:#d6d8e6}
+  .task.done{opacity:.5}
+  .task.done .t-title{text-decoration:line-through}
+  .task.overdue{border-color:#ffd0d2;background:var(--danger-soft)}
+  .tick{
+    width:19px;height:19px;flex:none;border-radius:6px;border:1.6px solid #c8cbdb;background:#fff;
+    cursor:pointer;display:grid;place-items:center;transition:.15s;position:relative;
+  }
+  .tick:hover{border-color:var(--accent)}
+  .task.done .tick{background:var(--accent);border-color:var(--accent)}
+  .tick svg{width:11px;height:11px;stroke:#fff;stroke-width:3;fill:none;opacity:0;transition:.15s}
+  .task.done .tick svg{opacity:1}
+  .t-body{flex:1;min-width:0}
+  .t-title{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .t-due{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
+  .task.overdue .t-due{color:var(--danger);font-weight:700}
+  .del{
+    border:none;background:transparent;color:var(--ink-3);cursor:pointer;font-size:16px;line-height:1;
+    padding:2px 4px;border-radius:6px;opacity:0;transition:.15s;
+  }
+  .task:hover .del{opacity:1}
+  .del:hover{color:var(--danger);background:var(--danger-soft)}
+  .empty{text-align:center;color:var(--ink-3);font-size:12.5px;padding:26px 0}
+
+  /* pomodoro */
+  .pomo{display:flex;align-items:center;gap:20px}
+  .ring{position:relative;width:126px;height:126px;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .track{stroke:#eceef6;stroke-width:9;fill:none}
+  .ring .prog{stroke:url(#pg);stroke-width:9;fill:none;stroke-linecap:round;transition:stroke-dashoffset .5s linear}
+  .ring-mid{
+    position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+  }
+  .ring-mid .mm{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:-.5px}
+  .ring-mid .ss{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
+  .pomo-side{flex:1;display:flex;flex-direction:column;gap:10px}
+  .pomo-side .row{display:flex;gap:8px}
+  .stat-line{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2);padding:6px 0;border-bottom:1px dashed var(--line)}
+  .stat-line:last-child{border-bottom:none}
+  .stat-line b{font-family:var(--mono);font-weight:700;color:var(--ink)}
+
+  /* habits */
+  .habits{display:flex;flex-direction:column;gap:10px}
+  .habit{
+    display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:12px;
+    border:1px solid var(--line);background:#fcfcff;cursor:pointer;transition:.15s;user-select:none;
+  }
+  .habit:hover{border-color:#d6d8e6;background:#f8f9ff}
+  .habit.on{border-color:#cfc8ff;background:linear-gradient(90deg,#f6f4ff,#fdfdff)}
+  .h-ico{
+    width:28px;height:28px;border-radius:9px;flex:none;display:grid;place-items:center;
+    background:#eef0f8;color:var(--ink-2);transition:.15s;
+  }
+  .habit.on .h-ico{background:var(--accent);color:#fff}
+  .h-ico svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .h-name{flex:1;font-size:13px;font-weight:600}
+  .h-name small{display:block;font-weight:500;font-size:10.5px;color:var(--ink-3);margin-top:1px;font-family:var(--mono)}
+  .h-val{font-family:var(--mono);font-size:12px;color:var(--ink-3);font-weight:700}
+  .habit.on .h-val{color:var(--accent)}
+
+  /* water */
+  .cups{display:flex;gap:7px;margin-top:12px}
+  .cup{
+    flex:1;height:40px;border-radius:8px;border:1.6px solid #dfe2ee;background:#fafbfe;
+    cursor:pointer;position:relative;overflow:hidden;transition:.16s;
+  }
+  .cup::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:0;
+    background:linear-gradient(180deg,#63d9f0,#2aa8e0);transition:height .3s cubic-bezier(.4,1.6,.5,1);
+  }
+  .cup.on{border-color:#7dd0ee}
+  .cup.on::after{height:100%}
+  .cup:hover{border-color:#9dc4e8}
+  .cup span{
+    position:absolute;inset:0;display:grid;place-items:center;z-index:1;
+    font-family:var(--mono);font-size:10px;color:#c3c8d8;transition:color .2s;
+  }
+  .cup.on span{color:#fff;text-shadow:0 1px 2px rgba(0,60,90,.35)}
+
+  /* metrics */
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .metric{
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fcfcff;
+  }
+  .metric .k{font-size:11px;color:var(--ink-3);letter-spacing:.4px}
+  .metric .v{font-family:var(--mono);font-size:22px;font-weight:750;margin-top:4px;letter-spacing:-.5px}
+  .metric .v small{font-size:11px;color:var(--ink-3);font-weight:500;margin-left:2px}
+  .metric.warn .v{color:var(--danger)}
+  .metric.good .v{color:var(--ok)}
+
+  /* chart */
+  .bars{display:flex;align-items:flex-end;gap:10px;height:110px;padding-top:6px}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%}
+  .bar-track{flex:1;width:100%;position:relative;border-radius:6px;background:#f4f5fa;overflow:hidden}
+  .bar{
+    position:absolute;left:0;right:0;bottom:0;
+    border-radius:6px;background:linear-gradient(180deg,#8f7dff,#5546ff);
+    transition:height .5s cubic-bezier(.3,1.4,.5,1);min-height:3px;
+  }
+  .bar.today{background:linear-gradient(180deg,#3fd6c4,#00b3a4)}
+  .bar-col .lbl{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+  .bar-col .val{font-family:var(--mono);font-size:10px;color:var(--ink-2);font-weight:700}
+  .legend{display:flex;gap:14px;font-size:11px;color:var(--ink-3);margin-top:10px}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:5px;vertical-align:middle}
+
+  /* report */
+  .report{
+    font-size:13px;line-height:1.85;color:var(--ink-2);white-space:pre-wrap;
+    background:#fafbff;border:1px dashed #dfe1f0;border-radius:12px;padding:14px 16px;
+    font-family:var(--mono);font-size:12px;
+  }
+  .report b{color:var(--ink);font-weight:700}
+
+  /* settings */
+  .settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:11px;color:var(--ink-3);letter-spacing:.3px}
+  .field input,.field select{
+    font:inherit;font-family:var(--mono);font-size:12.5px;padding:8px 10px;border-radius:9px;
+    border:1px solid var(--line);background:#fafbfe;color:var(--ink);outline:none;
+  }
+  .field input:focus,.field select:focus{border-color:#bdb4ff;box-shadow:0 0 0 3px rgba(85,70,255,.09)}
+  .switch{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:12.5px;color:var(--ink-2);padding-top:18px}
+  .sw{width:38px;height:22px;border-radius:99px;background:#dfe2ee;position:relative;transition:.2s;flex:none}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .switch.on .sw{background:var(--accent)}
+  .switch.on .sw::after{left:18px}
+
+  /* toast */
+  .foot{
+    display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:center;align-items:center;
+    margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;
+  }
+  .foot span{white-space:nowrap}
+  .foot span+span::before{content:"·";margin-right:18px;color:#d3d6e4}
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+    background:#12141c;color:#fff;font-size:13px;padding:11px 20px;border-radius:11px;
+    box-shadow:0 18px 40px -14px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.24s;z-index:99;
+    display:flex;align-items:center;gap:9px;max-width:min(92vw,520px);
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast .dot{width:7px;height:7px;border-radius:50%;background:#3fd6c4;flex:none;animation:scan 1.6s infinite}
+
+  @media (max-width:900px){
+    .span-7,.span-5,.span-4,.span-6{grid-column:span 12}
+    .hero{grid-template-columns:1fr;text-align:center;gap:14px}
+    .avatar{justify-self:center}
+    .bubble::before{display:none}
+    .quick{justify-content:center}
+    .pomo{flex-direction:column}
+    .task-add input[type=datetime-local]{width:100%}
+    .task-add{flex-wrap:wrap}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">CN</div>
+      <div>
+        <h1>赛博保姆</h1>
+        <span>CYBER NANNY v1.0</span>
+      </div>
+    </div>
+    <div class="clock"><b id="clock">--:--</b> <span id="datestr"></span></div>
+    <div class="chip" id="personaBtn" title="切换保姆人格">
+      <span style="width:6px;height:6px;border-radius:50%;background:#5546ff"></span>
+      <span id="personaName">毒舌总管</span>
+    </div>
+    <div class="points" id="pointBox"><em id="pointsVal">0</em> 分</div>
+  </div>
+
+  <div class="hero">
+    <div class="avatar">
+      <img id="charImg" class="char" src="assets/nanny-normal.webp" alt="赛博保姆 · 诺诺" width="132" height="132" />
+      <div class="char-fallback" id="charFallback">
+        <svg viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#6f5bff"/><stop offset="100%" stop-color="#00b3a4"/>
+            </linearGradient>
+            <linearGradient id="gF" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#eef0ff"/>
+            </linearGradient>
+          </defs>
+          <rect x="16" y="10" width="88" height="88" rx="26" fill="none" stroke="url(#gA)" stroke-width="2.5" opacity=".55"/>
+          <rect x="24" y="20" width="72" height="66" rx="20" fill="url(#gF)" stroke="url(#gA)" stroke-width="2.5"/>
+          <rect x="34" y="34" width="52" height="30" rx="12" fill="#12141c"/>
+          <g class="eyes" style="transform-origin:60px 49px">
+            <circle cx="48" cy="49" r="5.4" fill="#3fd6c4"/>
+            <circle cx="72" cy="49" r="5.4" fill="#3fd6c4"/>
+            <circle cx="49.6" cy="47.4" r="1.9" fill="#fff" opacity=".9"/>
+            <circle cx="73.6" cy="47.4" r="1.9" fill="#fff" opacity=".9"/>
+          </g>
+          <rect class="scan" x="38" y="67" width="44" height="3" rx="1.5" fill="#5546ff" opacity=".5"/>
+          <rect x="52" y="86" width="16" height="10" rx="4" fill="#dfe2ee"/>
+          <rect x="42" y="96" width="36" height="8" rx="4" fill="url(#gA)"/>
+          <circle cx="60" cy="16" r="4" fill="#3fd6c4"><animate attributeName="opacity" values="1;.25;1" dur="2s" repeatCount="indefinite"/></circle>
+        </svg>
+      </div>
+      <div class="expr-tag" id="exprTag">待机</div>
+    </div>
+    <div class="speech">
+      <div class="bubble" id="bubble">保姆已上线。今天也别想糊弄过去。</div>
+      <div class="quick">
+        <button data-act="wake">我起来了</button>
+        <button data-act="water">喝了一杯水</button>
+        <button data-act="slack">我想摸鱼</button>
+        <button data-act="stand">我起来动了</button>
+        <button data-act="ask">保姆，我现在该干嘛</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- 任务 -->
+    <div class="card span-7">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        今日任务 <span class="hint" id="taskHint">0 / 0</span>
+      </h2>
+      <div class="task-add">
+        <input type="text" id="taskInput" placeholder="要干什么？写具体点，别写“努力”这种废话" maxlength="80" />
+        <input type="datetime-local" id="taskDue" />
+        <button class="btn" id="addTask">加进去</button>
+      </div>
+      <div class="tasks" id="taskList"></div>
+    </div>
+
+    <!-- 番茄钟 -->
+    <div class="card span-5">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
+        专注计时 <span class="hint" id="pomoHint">待命</span>
+      </h2>
+      <div class="pomo">
+        <div class="ring">
+          <svg width="126" height="126" viewBox="0 0 126 126">
+            <defs>
+              <linearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#5546ff"/><stop offset="100%" stop-color="#3fd6c4"/>
+              </linearGradient>
+            </defs>
+            <circle class="track" cx="63" cy="63" r="54"/>
+            <circle class="prog" id="ringProg" cx="63" cy="63" r="54" stroke-dasharray="339.3" stroke-dashoffset="0"/>
+          </svg>
+          <div class="ring-mid">
+            <div>
+              <div class="mm" id="pomoTime">25:00</div>
+              <div class="ss" id="pomoState">READY</div>
+            </div>
+          </div>
+        </div>
+        <div class="pomo-side">
+          <div class="row">
+            <button class="btn" id="pomoStart" style="flex:1">开始专注</button>
+            <button class="btn ghost" id="pomoReset">重置</button>
+          </div>
+          <div class="row">
+            <button class="btn ghost tiny" data-focus="15" style="flex:1">15 分钟</button>
+            <button class="btn ghost tiny" data-focus="25" style="flex:1">25 分钟</button>
+            <button class="btn ghost tiny" data-focus="45" style="flex:1">45 分钟</button>
+          </div>
+          <div class="stat-line"><span>今日专注</span><b id="focusMinTxt">0 分钟</b></div>
+          <div class="stat-line"><span>完成番茄</span><b id="pomoCountTxt">0 个</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 打卡 -->
+    <div class="card span-6">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        每日打卡 <span class="hint" id="habitHint">0 / 5</span>
+      </h2>
+      <div class="habits" id="habitList"></div>
+      <div class="cups" id="cups"></div>
+    </div>
+
+    <!-- 数据 -->
+    <div class="card span-6">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+        今日体检 <span class="hint" id="gradeHint">—</span>
+      </h2>
+      <div class="metrics">
+        <div class="metric"><div class="k">今日积分</div><div class="v" id="mPoints">0</div></div>
+        <div class="metric"><div class="k">任务完成率</div><div class="v" id="mRate">0<small>%</small></div></div>
+        <div class="metric"><div class="k">连续达标</div><div class="v" id="mStreak">0<small>天</small></div></div>
+        <div class="metric"><div class="k">距睡觉还剩</div><div class="v" id="mSleep">--</div></div>
+      </div>
+      <div style="margin-top:16px">
+        <div style="font-size:11px;color:var(--ink-3);letter-spacing:1px;margin-bottom:4px">近 7 日积分</div>
+        <div class="bars" id="bars"></div>
+        <div class="legend"><span><i style="background:#5546ff"></i>历史</span><span><i style="background:#00b3a4"></i>今天</span></div>
+      </div>
+    </div>
+
+    <!-- 总结 -->
+    <div class="card span-12">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+        保姆日报 <span class="hint" style="cursor:pointer" id="copyReport">点击复制</span>
+      </h2>
+      <div class="report" id="report">—</div>
+    </div>
+
+    <!-- 设置 -->
+    <div class="card span-12">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.7 1.7 0 008 19.4a1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H2a2 2 0 110-4h.1A1.7 1.7 0 004.6 8a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V2a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H22a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+        保姆设定 <span class="hint">改完立刻生效</span>
+      </h2>
+      <div class="settings">
+        <div class="field"><label>起床时间</label><input type="time" id="setWake" /></div>
+        <div class="field"><label>睡觉时间</label><input type="time" id="setSleep" /></div>
+        <div class="field"><label>每日喝水目标（杯）</label><input type="number" id="setWater" min="1" max="16" /></div>
+        <div class="field"><label>久坐提醒（分钟）</label><input type="number" id="setSit" min="10" max="180" step="5" /></div>
+        <label class="switch" id="voiceSwitch"><span class="sw"></span>语音播报</label>
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <button class="btn ghost tiny" id="exportBtn" style="flex:1">导出数据</button>
+          <button class="btn ghost tiny" id="resetBtn" style="flex:1;color:var(--danger)">清空重来</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <span>CYBER NANNY · MIT License</span>
+    <span>立绘为 AI 生成，可替换 assets/ 内同名图片换成你自己的角色</span>
+    <span>数据只留本机 localStorage，不上传</span>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="dot"></span><span id="toastTxt"></span></div>
+
+<script>
+/* =========================================================
+   CYBER NANNY — 单文件离线应用
+   数据存 localStorage，key: cyberNanny.v1
+   ========================================================= */
+const KEY = 'cyberNanny.v1';
+const $ = s => document.querySelector(s);
+
+/* ---------- 人格台词库 ---------- */
+const PERSONAS = {
+  savage: {
+    name: '毒舌总管', pitch: 1.0, rate: 1.06,
+    greet: ['保姆已上线。今天也别想糊弄过去。','醒了？那就别躺着刷手机了。','我看你今天状态一般，最好别让我抓到把柄。'],
+    praise: ['行吧，这次算你干了点正事。','不错，勉强配得上我的评分。','记住这种感觉，别三天打鱼两天晒网。'],
+    nag: ['你的任务列表不会自己变短。','嘴上说忙，进度条一动不动。','现在不干，晚上就得熬夜补，然后明天继续废。'],
+    overdue: ['逾期了，别装看不见。','这个任务已经凉了，你打算怎么解释？','再拖下去，它就该被扔进垃圾桶了。'],
+    water: ['喝水。现在。别让我说第二遍。','你要是水都懒得喝，别的就别谈了。'],
+    sleep: ['该睡了。手机放下。','熬夜换来的效率，都是假的。','离睡觉时间不多了，收尾吧。'],
+    wake: ['起了就起，别又在床上躺半小时。','早上的时间最值钱，别浪费。'],
+    slack: ['摸鱼可以，先把活干完再说。','想摸鱼？行，那今天的分扣一半。','我数三个数，回到座位上。'],
+    focus: ['专注模式，别切窗口。','这段时间只干一件事，其他都给我放一边。'],
+    idle: ['别发呆。要么干活，要么去休息，别半吊子。']
+  },
+  gentle: {
+    name: '温柔姐姐', pitch: 1.25, rate: 0.96,
+    greet: ['今天也一起好好过吧，我陪着你。','慢慢来，但别停下。','早餐吃了吗？先照顾自己，再谈效率。'],
+    praise: ['做得很好，我记下了。','看，你可以的。','辛苦啦，记得给自己一点奖励。'],
+    nag: ['要不要先从最小的一步开始？','现在开始也完全来得及。','如果太难，就拆成两半，我陪你做。'],
+    overdue: ['这个任务超时了，我们一起看看卡在哪。','别自责，先把它挪到今天的第一个。'],
+    water: ['喝点水吧，就一口，好吗？','水杯该续上了。'],
+    sleep: ['该休息了，明天才有精神。','身体比进度重要，早点睡。'],
+    wake: ['早上好，慢慢清醒，不用急着完美。','新的一天，先深呼吸三次。'],
+    slack: ['休息一下也可以，但别太久哦。','摸鱼十分钟，然后回来，好吗？'],
+    focus: ['我们一起安静地做这一件事。','把手机翻过去，就专注这一会儿。'],
+    idle: ['现在想做点什么呢？我帮你排一下。']
+  },
+  robot: {
+    name: '冷面机械', pitch: 0.7, rate: 0.92,
+    greet: ['系统就绪。开始采集你的行为数据。','检测到宿主上线。合规率待评估。'],
+    praise: ['行为记录已归档。评分上调。','执行符合预期。继续保持。'],
+    nag: ['检测到任务队列堆积。建议立即处理。','单位时间内产出低于阈值。请调整。'],
+    overdue: ['警告：任务已超期。记录已标记。','超时事件 +1。该数据不会消失。'],
+    water: ['补水指令：执行。','体液赤字，请摄入液体。'],
+    sleep: ['进入睡眠窗口。请关闭终端。','褪黑素分泌窗口开启。建议就寝。'],
+    wake: ['唤醒程序完成。请启动日间循环。'],
+    slack: ['娱乐行为已记录。计入低效时长。','检测到注意力漂移。'],
+    focus: ['专注进程已启动。请勿中断。','当前模式：单线程。禁止多任务。'],
+    idle: ['等待指令。或由我分配。']
+  },
+  drill: {
+    name: '军训教官', pitch: 0.85, rate: 1.12,
+    greet: ['站直！从今天开始，你的时间归我管。','磨磨蹭蹭的样子，我看着就来气。'],
+    praise: ['这才像个人样！','合格！但别指望我夸第二次。'],
+    nag: ['动起来！坐着能想出个屁来！','少废话，多干活！','你的对手已经在跑了，你还在这磨。'],
+    overdue: ['超时了！这叫什么执行力！','任务逾期，责任自己扛，别找借口！'],
+    water: ['喝水！身体是革命的本钱！'],
+    sleep: ['熄灯！明天还有仗要打！'],
+    wake: ['起床！太阳都看不下去了！'],
+    slack: ['摸鱼？我让你摸！先把活干完！'],
+    focus: ['专注！谁允许你分心的！'],
+    idle: ['愣着干什么，动起来！']
+  }
+};
+
+/* ---------- 立绘：表情差分 ---------- */
+const CHARS = {
+  normal: { src: 'assets/nanny-normal.webp', tag: '待机' },
+  happy:  { src: 'assets/nanny-happy.webp',  tag: '满意' },
+  angry:  { src: 'assets/nanny-angry.webp',  tag: '训话' },
+  sleepy: { src: 'assets/nanny-sleepy.webp', tag: '犯困' }
+};
+const EXPR_OF = {
+  greet: 'normal', praise: 'happy', water: 'happy', wake: 'happy',
+  nag: 'angry', overdue: 'angry', slack: 'angry',
+  sleep: 'sleepy', focus: 'normal', idle: 'normal'
+};
+let curExpr = '';
+let exprTimer = null;
+
+function setExpr(name, hold){
+  const c = CHARS[name] ? name : 'normal';
+  const img = document.getElementById('charImg');
+  if(!img) return;
+  if(curExpr !== c){
+    img.setAttribute('src', CHARS[c].src);
+    img.setAttribute('data-expr', c);
+    img.classList.remove('swap');
+    void img.offsetWidth;
+    img.classList.add('swap');
+    curExpr = c;
+  }
+  const tag = document.getElementById('exprTag');
+  if(tag) tag.textContent = CHARS[c].tag;
+  clearTimeout(exprTimer);
+  if(hold > 0) exprTimer = setTimeout(() => setExpr('normal', 0), hold);
+}
+
+/* ---------- 状态 ---------- */
+function dkey(d = new Date()){
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+function defaultDaily(){
+  return { date: dkey(), points: 0, water: 0, focusMin: 0, pomos: 0,
+           wake: false, exercise: false, read: false, sleep: false,
+           sitAt: Date.now(), lastStand: Date.now() };
+}
+const DEFAULT_STATE = {
+  persona: 'savage',
+  daily: defaultDaily(),
+  tasks: [],
+  archive: {},
+  totalPoints: 0,
+  settings: { wake: '07:00', sleep: '23:30', waterGoal: 8, sitMin: 45, voice: false }
+};
+let state = load();
+let demoMode = false;   // ?demo=1 时开启，不写盘
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return structuredClone(DEFAULT_STATE);
+    let s = Object.assign(structuredClone(DEFAULT_STATE), JSON.parse(raw));
+    s.settings = Object.assign({}, DEFAULT_STATE.settings, s.settings || {});
+    s.archive = s.archive || {};
+    s.tasks = s.tasks || [];
+    if(!s.daily || s.daily.date !== dkey()) s = rollover(s);
+    return s;
+  }catch(e){ return structuredClone(DEFAULT_STATE); }
+}
+function rollover(s){
+  const oldDate = s.daily && s.daily.date ? s.daily.date : dkey();
+  const old = { ...s.daily };
+  delete old.sitAt; delete old.lastStand; delete old.date; delete old.date_key;
+  if(s.archive[oldDate] === undefined && (old.points || old.water || old.focusMin)){
+    s.archive[oldDate] = old;
+  }
+  s.daily = defaultDaily();
+  s.tasks = (s.tasks || []).filter(t => !t.done);
+  return s;
+}
+function save(){ if(demoMode) return; localStorage.setItem(KEY, JSON.stringify(state)); }
+
+/* ---------- 说话 ---------- */
+let lastSpeak = 0;
+function say(cat, opts = {}){
+  const now = Date.now();
+  if(!opts.force && now - lastSpeak < 1200) return;
+  lastSpeak = now;
+  const p = PERSONAS[state.persona] || PERSONAS.savage;
+  const pool = p[cat] || p.idle;
+  const line = pool[Math.floor(Math.random() * pool.length)];
+  const b = $('#bubble');
+  b.classList.remove('flash');
+  void b.offsetWidth;
+  b.textContent = line;
+  b.classList.add('flash');
+  setExpr(EXPR_OF[cat] || 'normal', cat === 'praise' || cat === 'water' ? 3200 : 4600);
+  if(state.settings.voice) speak(line, p);
+}
+function speak(text, p){
+  if(!('speechSynthesis' in window)) return;
+  try{
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN';
+    u.pitch = p.pitch; u.rate = p.rate; u.volume = 1;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+function toast(msg){
+  const t = $('#toast');
+  $('#toastTxt').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), 2100);
+}
+
+/* ---------- 积分 ---------- */
+const PTS = { habit: 10, wake: 15, water: 3, pomo: 10, task: 10, overdue: -12 };
+function addPoints(n, reason){
+  state.daily.points += n;
+  state.totalPoints = (state.totalPoints || 0) + n;
+  save(); renderPoints();
+  toast((n > 0 ? '+' : '') + n + ' 分 · ' + reason);
+}
+function deduct(n, reason){
+  state.daily.points -= n;
+  state.totalPoints = (state.totalPoints || 0) - n;
+  save(); renderPoints(); renderReport();
+  toast('-' + n + ' 分 · ' + reason);
+}
+
+/* ---------- 渲染：顶栏 ---------- */
+function renderPoints(){
+  const v = $('#pointsVal'), box = $('#pointBox');
+  v.textContent = state.daily.points;
+  box.classList.toggle('neg', state.daily.points < 0);
+}
+
+/* ---------- 渲染：任务 ---------- */
+function fmtDue(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d)) return '';
+  const p = n => String(n).padStart(2,'0');
+  const today = dkey(d) === dkey();
+  return (today ? '今天 ' : `${d.getMonth()+1}/${d.getDate()} `) + `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function isOverdue(t){
+  return !t.done && t.due && new Date(t.due).getTime() < Date.now();
+}
+function renderTasks(){
+  const box = $('#taskList');
+  const list = state.tasks;
+  if(!list.length){
+    box.innerHTML = '<div class="empty">列表是空的。空列表不叫休息，叫逃避。</div>';
+  }else{
+    box.innerHTML = list.map(t => `
+      <div class="task ${t.done?'done':''} ${isOverdue(t)?'overdue':''}" data-id="${t.id}">
+        <div class="tick" data-act="toggle">
+          <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div class="t-body">
+          <div class="t-title">${escapeHtml(t.title)}</div>
+          ${t.due ? `<div class="t-due">${isOverdue(t) ? '已逾期 · ' : '截止 '}${fmtDue(t.due)}</div>` : ''}
+        </div>
+        <button class="del" data-act="del" title="删除">&times;</button>
+      </div>`).join('');
+  }
+  const done = list.filter(t => t.done).length;
+  $('#taskHint').textContent = `${done} / ${list.length}`;
+  renderMetrics();
+  renderBars();
+  renderReport();
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- 渲染：打卡 ---------- */
+const HABITS = [
+  { key:'wake',     name:'按时起床', sub:'', icon:'sun'  },
+  { key:'exercise', name:'运动 20 分钟', sub:'', icon:'bolt' },
+  { key:'read',     name:'阅读 / 学习', sub:'', icon:'book' },
+  { key:'sleep',    name:'按时睡觉', sub:'', icon:'moon' }
+];
+const ICONS = {
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>',
+  bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>',
+  book:'<path d="M4 19V5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19a2 2 0 002 2h13"/>',
+  moon:'<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>'
+};
+function renderHabits(){
+  const box = $('#habitList');
+  box.innerHTML = HABITS.map(h => `
+    <div class="habit ${state.daily[h.key] ? 'on':''}" data-habit="${h.key}">
+      <div class="h-ico"><svg viewBox="0 0 24 24">${ICONS[h.icon]}</svg></div>
+      <div class="h-name">${h.name}${h.sub ? `<small>${h.sub}</small>` : ''}</div>
+      <div class="h-val">${state.daily[h.key] ? 'DONE' : '+10'}</div>
+    </div>`).join('');
+
+  const goal = state.settings.waterGoal || 8;
+  $('#cups').innerHTML = Array.from({length: goal}, (_, i) =>
+    `<div class="cup ${i < state.daily.water ? 'on':''}" data-cup="${i+1}" title="第 ${i+1} 杯"><span>${i+1}</span></div>`).join('');
+
+  const total = HABITS.length + 1;
+  const got = HABITS.filter(h => state.daily[h.key]).length + (state.daily.water >= goal ? 1 : 0);
+  $('#habitHint').textContent = `${got} / ${total}`;
+  renderMetrics();
+  renderReport();
+}
+
+/* ---------- 渲染：指标 + 图表 ---------- */
+function renderMetrics(){
+  const tasks = state.tasks;
+  const done = tasks.filter(t => t.done).length;
+  const rate = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+
+  $('#mPoints').textContent = state.daily.points;
+  $('#mRate').innerHTML = rate + '<small>%</small>';
+  $('#mStreak').innerHTML = streak() + '<small>天</small>';
+
+  // 距睡觉
+  const now = new Date();
+  const [sh, sm] = (state.settings.sleep || '23:30').split(':').map(Number);
+  const sleepAt = new Date(now); sleepAt.setHours(sh, sm, 0, 0);
+  let diff = (sleepAt - now) / 60000;
+  if(diff < 0) diff += 1440;
+  const h = Math.floor(diff / 60), m = Math.round(diff % 60);
+  $('#mSleep').innerHTML = diff < 60 ? `${m}<small>分</small>` : `${h}<small>时</small>${m}<small>分</small>`;
+  const sleepEl = $('#mSleep').closest('.metric');
+  sleepEl.classList.toggle('warn', diff < 60 && !state.daily.sleep);
+  sleepEl.classList.toggle('good', !!state.daily.sleep);
+
+  $('#focusMinTxt').textContent = state.daily.focusMin + ' 分钟';
+  $('#pomoCountTxt').textContent = state.daily.pomos + ' 个';
+
+  const ptsEl = $('#mPoints').closest('.metric');
+  ptsEl.classList.toggle('warn', state.daily.points < 0);
+  ptsEl.classList.toggle('good', state.daily.points >= 60);
+
+  // 评级
+  const score = habitScore();
+  const g = score >= 85 ? 'S 级 · 可以了' : score >= 65 ? 'A 级 · 还行' : score >= 40 ? 'B 级 · 一般' : 'C 级 · 危险';
+  $('#gradeHint').textContent = g;
+}
+function habitScore(){
+  const goal = state.settings.waterGoal || 8;
+  const items = HABITS.map(h => state.daily[h.key] ? 1 : 0).concat([Math.min(1, state.daily.water / goal)]);
+  const tasks = state.tasks;
+  const taskRate = tasks.length ? tasks.filter(t => t.done).length / tasks.length : 0;
+  const base = items.reduce((a, b) => a + b, 0) / items.length;
+  return Math.round((base * 0.7 + taskRate * 0.3) * 100);
+}
+function streak(){
+  let n = 0;
+  const d = new Date();
+  if(habitScore() >= 60) n = 1;
+  for(let i = 1; i <= 60; i++){
+    const dd = new Date(d); dd.setDate(d.getDate() - i);
+    const rec = state.archive[dkey(dd)];
+    if(!rec) break;
+    const goal = state.settings.waterGoal || 8;
+    const items = [rec.wake, rec.exercise, rec.read, rec.sleep].map(Boolean)
+      .concat([Math.min(1, (rec.water || 0) / goal)]);
+    const base = items.reduce((a, b) => a + b, 0) / items.length;
+    if(base >= 0.6) n++; else break;
+  }
+  return n;
+}
+function renderBars(){
+  const days = [];
+  const now = new Date();
+  for(let i = 6; i >= 0; i--){
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    const k = dkey(d);
+    let pts = 0;
+    if(i === 0) pts = Math.max(0, state.daily.points);
+    else pts = Math.max(0, (state.archive[k] && state.archive[k].points) || 0);
+    days.push({ k, pts, lbl: '日一二三四五六'[d.getDay()], today: i === 0 });
+  }
+  const max = Math.max(30, ...days.map(d => d.pts));
+  $('#bars').innerHTML = days.map(d => `
+    <div class="bar-col">
+      <div class="val">${d.pts || ''}</div>
+      <div class="bar-track"><div class="bar ${d.today?'today':''}" style="height:${Math.max(3, d.pts / max * 100)}%"></div></div>
+      <div class="lbl">${d.today ? '今' : d.lbl}</div>
+    </div>`).join('');
+}
+
+/* ---------- 日报 ---------- */
+function renderReport(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  const goal = state.settings.waterGoal || 8;
+  const habits = HABITS.filter(h => state.daily[h.key]).map(h => h.name);
+  const tasks = state.tasks;
+  const done = tasks.filter(t => t.done).length;
+  const overdue = tasks.filter(isOverdue).length;
+  const score = habitScore();
+
+  const lines = [
+    `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} 保姆日报`,
+    `积分 ${state.daily.points} · 完成度 ${score}% · 连续达标 ${streak()} 天`,
+    `打卡：${habits.length ? habits.join('、') : '一项都没打'}`,
+    `喝水：${state.daily.water}/${goal} 杯 · 专注：${state.daily.focusMin} 分钟（${state.daily.pomos} 个番茄）`,
+    `任务：${done}/${tasks.length} 完成${overdue ? `，${overdue} 项逾期` : ''}`
+  ];
+  const verdicts = score >= 85
+    ? ['结论：今天无可挑剔。保持这个节奏，别明天就打回原形。']
+    : score >= 60
+    ? ['结论：勉强过关。差的那几项，明天补上。']
+    : score >= 30
+    ? ['结论：及格线以下。你不是没时间，是没开始。']
+    : ['结论：今天基本报废。别自责了，现在起来做一件小事，还来得及。'];
+  lines.push('');
+  lines.push(verdicts[0]);
+  $('#report').textContent = lines.join('\n');
+}
+
+/* ---------- 交互：任务 ---------- */
+function addTask(){
+  const inp = $('#taskInput'), due = $('#taskDue');
+  const title = inp.value.trim();
+  if(!title){ toast('写个具体的事，别只按回车'); return; }
+  state.tasks.unshift({
+    id: 't' + Date.now() + Math.random().toString(36).slice(2, 6),
+    title, due: due.value || '', done: false
+  });
+  inp.value = ''; due.value = '';
+  save(); renderTasks();
+  say('praise', { force: true });
+}
+$('#addTask').addEventListener('click', addTask);
+$('#taskInput').addEventListener('keydown', e => { if(e.key === 'Enter') addTask(); });
+
+$('#taskList').addEventListener('click', e => {
+  const row = e.target.closest('.task'); if(!row) return;
+  const id = row.dataset.id;
+  const task = state.tasks.find(t => t.id === id); if(!task) return;
+  const act = e.target.closest('[data-act]');
+  if(!act) return;
+  if(act.dataset.act === 'toggle'){
+    task.done = !task.done;
+    if(task.done){
+      const late = isOverdue({ ...task, done: false, _nagged: false });
+      addPoints(late ? 5 : PTS.task, late ? '逾期补完，减半' : '任务完成');
+      say(late ? 'nag' : 'praise', { force: true });
+    }else{
+      deduct(PTS.task, '撤销完成');
+    }
+    save(); renderTasks();
+  }
+  if(act.dataset.act === 'del'){
+    state.tasks = state.tasks.filter(t => t.id !== id);
+    save(); renderTasks();
+  }
+});
+
+/* ---------- 交互：打卡 ---------- */
+$('#habitList').addEventListener('click', e => {
+  const row = e.target.closest('[data-habit]'); if(!row) return;
+  const k = row.dataset.habit;
+  state.daily[k] = !state.daily[k];
+  if(state.daily[k]){
+    addPoints(k === 'wake' ? PTS.wake : PTS.habit, HABITS.find(h => h.key === k).name);
+    say(k === 'wake' ? 'wake' : k === 'sleep' ? 'sleep' : 'praise', { force: true });
+  }else{
+    deduct(k === 'wake' ? PTS.wake : PTS.habit, '撤销打卡');
+  }
+  save(); renderHabits();
+});
+$('#cups').addEventListener('click', e => {
+  const cup = e.target.closest('[data-cup]'); if(!cup) return;
+  const idx = Number(cup.dataset.cup);
+  const goal = state.settings.waterGoal || 8;
+  if(idx > state.daily.water){
+    const add = idx - state.daily.water;
+    state.daily.water = idx;
+    addPoints(PTS.water * add, `喝到第 ${idx} 杯`);
+    if(state.daily.water >= goal && add > 0) say('water', { force: true });
+  }else{
+    const cut = state.daily.water - (idx - 1);
+    state.daily.water = idx - 1;
+    deduct(PTS.water * cut, '撤销喝水记录');
+  }
+  save(); renderHabits();
+});
+
+/* ---------- 交互：快速按钮 ---------- */
+document.querySelectorAll('.quick button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const act = btn.dataset.act;
+    if(act === 'wake'){
+      if(!state.daily.wake){
+        state.daily.wake = true;
+        addPoints(PTS.wake, '按时起床');
+        say('wake', { force: true });
+        save(); renderHabits();
+      }else{ say('nag', { force: true }); }
+    }
+    if(act === 'water'){
+      const goal = state.settings.waterGoal || 8;
+      if(state.daily.water < goal){
+        state.daily.water++;
+        addPoints(PTS.water, `第 ${state.daily.water} 杯水`);
+        say('water', { force: true });
+        save(); renderHabits();
+      }else{ say('praise', { force: true }); toast('水喝够了，别灌自己'); }
+    }
+    if(act === 'slack'){
+      deduct(5, '摸鱼税');
+      say('slack', { force: true });
+    }
+    if(act === 'stand'){
+      state.daily.lastStand = Date.now();
+      save();
+      say('praise', { force: true }); toast('久坐计时已重置');
+    }
+    if(act === 'ask'){
+      say(currentNagCat(), { force: true });
+    }
+  });
+});
+
+/* ---------- 番茄钟 ---------- */
+let pomo = { total: 25 * 60, remain: 25 * 60, running: false, tid: null };
+function renderPomo(){
+  const m = Math.floor(pomo.remain / 60), s = pomo.remain % 60;
+  $('#pomoTime').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  $('#pomoState').textContent = pomo.running ? 'FOCUS' : (pomo.remain === pomo.total ? 'READY' : 'PAUSED');
+  $('#pomoStart').textContent = pomo.running ? '暂停' : (pomo.remain === pomo.total ? '开始专注' : '继续');
+  $('#pomoHint').textContent = pomo.running ? '进行中' : (pomo.remain === pomo.total ? '待命' : '已暂停');
+  const C = 2 * Math.PI * 54;
+  const ratio = 1 - pomo.remain / pomo.total;
+  $('#ringProg').style.strokeDashoffset = String(-C * ratio);
+}
+function pomoTick(){
+  if(!pomo.running) return;
+  pomo.remain--;
+  if(pomo.remain <= 0){
+    pomo.running = false;
+    clearInterval(pomo.tid); pomo.tid = null;
+    const mins = Math.round(pomo.total / 60);
+    state.daily.focusMin += mins;
+    state.daily.pomos += 1;
+    state.daily.points += PTS.pomo;
+    state.totalPoints += PTS.pomo;
+    save();
+    renderPomo(); renderMetrics(); renderReport();
+    say('praise', { force: true });
+    toast(`专注完成 +${PTS.pomo} 分 · 起来动一动`);
+    beep();
+    return;
+  }
+  renderPomo();
+}
+$('#pomoStart').addEventListener('click', () => {
+  if(pomo.running){
+    pomo.running = false;
+    clearInterval(pomo.tid); pomo.tid = null;
+  }else{
+    pomo.running = true;
+    pomo.tid = setInterval(pomoTick, 1000);
+    say('focus', { force: true });
+  }
+  renderPomo();
+});
+$('#pomoReset').addEventListener('click', () => {
+  clearInterval(pomo.tid); pomo.tid = null;
+  pomo.running = false; pomo.remain = pomo.total;
+  renderPomo();
+});
+document.querySelectorAll('[data-focus]').forEach(b => {
+  b.addEventListener('click', () => {
+    clearInterval(pomo.tid); pomo.tid = null;
+    pomo.running = false;
+    pomo.total = Number(b.dataset.focus) * 60;
+    pomo.remain = pomo.total;
+    renderPomo();
+  });
+});
+function beep(){
+  try{
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.18, 0.36].forEach((t, i) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.value = [660, 880, 1046][i];
+      g.gain.setValueAtTime(0.0001, ac.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.16, ac.currentTime + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + t + 0.16);
+      o.connect(g); g.connect(ac.destination);
+      o.start(ac.currentTime + t); o.stop(ac.currentTime + t + 0.18);
+    });
+  }catch(e){}
+}
+
+/* ---------- 保姆主动监督 ---------- */
+function currentNagCat(){
+  const now = new Date();
+  const overdue = state.tasks.filter(isOverdue).length;
+  const goal = state.settings.waterGoal || 8;
+  const sitMin = (Date.now() - (state.daily.lastStand || Date.now())) / 60000;
+  const [sh, sm] = (state.settings.sleep || '23:30').split(':').map(Number);
+  const sleepAt = new Date(now); sleepAt.setHours(sh, sm, 0, 0);
+  let toSleep = (sleepAt - now) / 60000; if(toSleep < 0) toSleep += 1440;
+
+  if(overdue) return 'overdue';
+  if(toSleep < 60 && !state.daily.sleep) return 'sleep';
+  if(sitMin > (state.settings.sitMin || 45)) return 'idle';
+  if(state.daily.water < goal * 0.5 && now.getHours() >= 14) return 'water';
+  if(state.tasks.some(t => !t.done)) return 'nag';
+  return 'nag';
+}
+let nagTid = null;
+function startNag(){
+  clearInterval(nagTid);
+  nagTid = setInterval(() => {
+    const cat = currentNagCat();
+    say(cat);
+    // 久坐强制提醒
+    const sitMin = (Date.now() - (state.daily.lastStand || Date.now())) / 60000;
+    if(sitMin > (state.settings.sitMin || 45) && !document.hidden){
+      beep();
+      toast(`已连续坐 ${Math.round(sitMin)} 分钟 · 起来动一下`);
+    }
+    // 逾期检测
+    state.tasks.forEach(t => {
+      if(isOverdue(t) && !t._nagged){
+        t._nagged = true;
+        state.daily.points += PTS.overdue;
+        save(); renderPoints(); renderTasks();
+        toast(`任务逾期 ${PTS.overdue} 分：${t.title}`);
+      }
+    });
+  }, 75000);
+}
+
+/* ---------- 时钟 ---------- */
+function tickClock(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  $('#clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  const wd = '日一二三四五六'[d.getDay()];
+  $('#datestr').textContent = `${d.getMonth()+1}月${d.getDate()}日 周${wd}`;
+  // 跨天检查
+  if(state.daily.date !== dkey()){
+    state = rollover(state);
+    save(); renderAll();
+    toast('新的一天 · 打卡已重置');
+  }
+}
+
+/* ---------- 人格切换 ---------- */
+$('#personaBtn').addEventListener('click', () => {
+  const keys = Object.keys(PERSONAS);
+  const i = keys.indexOf(state.persona);
+  state.persona = keys[(i + 1) % keys.length];
+  save();
+  $('#personaName').textContent = PERSONAS[state.persona].name;
+  say('greet', { force: true });
+  toast('保姆人格已切换：' + PERSONAS[state.persona].name);
+});
+
+/* ---------- 设置 ---------- */
+function bindSettings(){
+  const s = state.settings;
+  $('#setWake').value = s.wake;
+  $('#setSleep').value = s.sleep;
+  $('#setWater').value = s.waterGoal;
+  $('#setSit').value = s.sitMin;
+  $('#voiceSwitch').classList.toggle('on', !!s.voice);
+
+  $('#setWake').addEventListener('change', e => { s.wake = e.target.value; save(); });
+  $('#setSleep').addEventListener('change', e => { s.sleep = e.target.value; save(); renderMetrics(); renderReport(); });
+  $('#setWater').addEventListener('change', e => {
+    s.waterGoal = Math.min(16, Math.max(1, Number(e.target.value) || 8));
+    e.target.value = s.waterGoal; save(); renderHabits(); renderBars(); renderReport();
+  });
+  $('#setSit').addEventListener('change', e => {
+    s.sitMin = Math.min(180, Math.max(10, Number(e.target.value) || 45));
+    e.target.value = s.sitMin; save();
+  });
+  $('#voiceSwitch').addEventListener('click', () => {
+    s.voice = !s.voice;
+    $('#voiceSwitch').classList.toggle('on', s.voice);
+    save();
+    if(s.voice) speak('语音已开启。', PERSONAS[state.persona]);
+  });
+  $('#resetBtn').addEventListener('click', () => {
+    if(!confirm('清空所有数据？包括任务、积分和历史记录。')) return;
+    localStorage.removeItem(KEY);
+    location.reload();
+  });
+  $('#exportBtn').addEventListener('click', () => {
+    const data = { exportedAt: new Date().toISOString(), state };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `cyber-nanny-${dkey()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('数据已导出');
+  });
+  $('#copyReport').addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText($('#report').textContent);
+      toast('日报已复制');
+    }catch(e){
+      const r = document.createRange(); r.selectNode($('#report'));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      document.execCommand('copy');
+      toast('日报已复制');
+    }
+  });
+}
+
+/* ---------- 全局渲染 ---------- */
+function renderAll(){
+  $('#personaName').textContent = PERSONAS[state.persona].name;
+  renderPoints(); renderTasks(); renderHabits(); renderPomo();
+  renderMetrics(); renderBars(); renderReport();
+}
+
+/* ---------- 演示数据（?demo=1）---------- */
+function localIso(minOffset){
+  const d = new Date(Date.now() + minOffset * 60000);
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function seedDemo(){
+  demoMode = true;
+  state.daily = Object.assign(defaultDaily(), {
+    points: 78, water: 5, focusMin: 50, pomos: 2,
+    wake: true, exercise: false, read: true, sleep: false
+  });
+  state.tasks = [
+    { id:'d1', title:'交本周周报', due: localIso(-30), done: false },
+    { id:'d2', title:'背 30 个单词', due: localIso(90), done: false },
+    { id:'d3', title:'复盘上周三个失误', due: '', done: true }
+  ];
+  const pts = [52, 96, 40, 118, 64, 88];
+  const d = new Date();
+  for(let i = 6; i >= 1; i--){
+    const dd = new Date(d); dd.setDate(d.getDate() - i);
+    state.archive[dkey(dd)] = { points: pts[i - 1] || 0, water: 6, focusMin: 50, pomos: 2,
+      wake: true, exercise: true, read: true, sleep: true };
+  }
+}
+
+/* ---------- 启动 ---------- */
+(function init(){
+  // 立绘：预加载 + 缺失时回落 SVG
+  const ci = document.getElementById('charImg');
+  if(ci){
+    const fail = () => { document.querySelector('.avatar').classList.add('noimg'); };
+    ci.addEventListener('error', fail);
+    if(ci.complete && ci.naturalWidth === 0) fail();
+  }
+  try{
+    Object.keys(CHARS).forEach(k => { const p = new window.Image(); p.src = CHARS[k].src; });
+  }catch(e){}
+  const hh = new Date().getHours();
+  if(hh >= 23 || hh < 6) setExpr('sleepy', 0);
+  if((location.search || '').includes('demo=1')) seedDemo();
+
+  renderAll();
+  bindSettings();
+  tickClock();
+  setInterval(tickClock, 1000);
+  startNag();
+  $('#pomoTime').textContent = '25:00';
+  renderPomo();
+  setTimeout(() => say('greet', { force: true }), 600);
+  // 首次进入请求语音上下文授权不算必要；保持静默
+  document.addEventListener('visibilitychange', () => {
+    if(!document.hidden){
+      say(currentNagCat());
+      renderAll();
+    }
+  });
+})();
+</script>
+</body>
+</html>
