@@ -2,6 +2,8 @@
 
 > 一个会盯着你干活的本地网页应用。打卡、任务、番茄钟、久坐提醒、积分惩罚、毒舌点评，全在一个 HTML 文件里。
 
+**在线试用** → <https://minj65446-ops.github.io/cyber-nanny/> ｜ 想看满数据的样子，加 `?demo=1`
+
 ![screenshot](docs/screenshot.png)
 
 ![HTML](https://img.shields.io/badge/single--file-HTML-5546ff)
