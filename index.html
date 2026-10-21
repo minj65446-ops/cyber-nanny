@@ -327,6 +327,45 @@
   .switch.on .sw{background:var(--accent)}
   .switch.on .sw::after{left:18px}
 
+  /* 第二大脑 */
+  .note-add{display:flex;gap:8px;margin-bottom:10px;align-items:flex-start}
+  .note-add textarea{
+    flex:1;font:inherit;font-size:13px;line-height:1.6;padding:10px 12px;border-radius:10px;
+    border:1px solid var(--line);background:#fafbfe;color:var(--ink);outline:none;resize:vertical;min-height:56px;
+  }
+  .note-add textarea:focus{border-color:#bdb4ff;background:#fff;box-shadow:0 0 0 3px rgba(85,70,255,.09)}
+  .note-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .note-bar input{
+    flex:1;min-width:170px;font:inherit;font-size:12.5px;padding:8px 12px;border-radius:9px;
+    border:1px solid var(--line);background:#fafbfe;color:var(--ink);outline:none;
+  }
+  .note-bar input:focus{border-color:#bdb4ff;background:#fff;box-shadow:0 0 0 3px rgba(85,70,255,.09)}
+  .tag-filter{display:flex;gap:6px;flex-wrap:wrap}
+  .tag-btn{
+    font:inherit;font-size:11.5px;padding:5px 11px;border-radius:99px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--ink-2);transition:.15s;
+  }
+  .tag-btn:hover{border-color:#cfd2e0}
+  .tag-btn.on{background:var(--accent);border-color:transparent;color:#fff}
+  .notes{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto}
+  .notes::-webkit-scrollbar{width:6px}
+  .notes::-webkit-scrollbar-thumb{background:#dcdeea;border-radius:99px}
+  .note{display:flex;gap:10px;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:#fcfcff;transition:.15s}
+  .note:hover{border-color:#d6d8e6}
+  .note.pinned{border-color:#cfc8ff;background:linear-gradient(90deg,#f7f5ff,#fdfdff)}
+  .note-body{flex:1;min-width:0}
+  .note-text{font-size:13px;line-height:1.62;white-space:pre-wrap;word-break:break-word}
+  .note-meta{display:flex;gap:8px;align-items:center;margin-top:7px;flex-wrap:wrap}
+  .note-tag{font-size:10.5px;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:#3a2ee0;font-weight:650}
+  .note-tag.done{background:#e7f8ee;color:#0f8a46}
+  .note-time{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+  .note-act{border:none;background:none;color:var(--ink-3);font:inherit;font-size:11.5px;cursor:pointer;padding:3px 7px;border-radius:6px;transition:.15s}
+  .note-act:hover{background:#f1f2f8;color:var(--ink)}
+  .note-act.danger:hover{background:var(--danger-soft);color:var(--danger)}
+  .review-bar{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  #reviewOut{margin-top:10px}
+  #reviewOut[hidden]{display:none}
+
   /* toast */
   .foot{
     display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:center;align-items:center;
@@ -505,6 +544,28 @@
       </div>
     </div>
 
+    <!-- 第二大脑 -->
+    <div class="card span-12">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5a3 3 0 00-3 3 3 3 0 00-1 5.8V17a3 3 0 003 3h2a3 3 0 003-3v-3.2A3 3 0 0015 8a3 3 0 00-3-3z"/><path d="M12 5v15"/></svg>
+        第二大脑 <span class="hint" id="noteHint">0 条</span>
+      </h2>
+      <div class="note-add">
+        <textarea id="noteInput" rows="2" placeholder="把脑子里那件事倒出来：想法、资料、待办都行。自动打标签，Ctrl+Enter 存下。"></textarea>
+        <button class="btn" id="addNoteBtn">记下</button>
+      </div>
+      <div class="note-bar">
+        <input type="text" id="noteSearch" placeholder="搜正文 / 标签，边打边筛" />
+        <div class="tag-filter" id="tagFilter"></div>
+      </div>
+      <div class="notes" id="noteList"></div>
+      <div class="review-bar">
+        <button class="btn ghost tiny" id="genReviewBtn">生成阶段总结</button>
+        <span class="hint" id="copyReview" style="cursor:pointer;color:var(--ink-3);font-size:11px">点击复制</span>
+      </div>
+      <pre class="report" id="reviewOut" hidden></pre>
+    </div>
+
     <!-- 总结 -->
     <div class="card span-12">
       <h2>
@@ -665,6 +726,7 @@ const DEFAULT_STATE = {
   persona: 'savage',
   daily: defaultDaily(),
   tasks: [],
+  notes: [],
   archive: {},
   totalPoints: 0,
   settings: {
@@ -689,6 +751,7 @@ function load(){
     s.pomo = Object.assign({}, structuredClone(DEFAULT_STATE.pomo), s.pomo || {});
     s.archive = s.archive || {};
     s.tasks = s.tasks || [];
+    s.notes = s.notes || [];
     if(!s.daily || s.daily.date !== dkey()) s = rollover(s);
     return s;
   }catch(e){ return structuredClone(DEFAULT_STATE); }
@@ -947,6 +1010,170 @@ function renderReport(){
   lines.push(verdicts[0]);
   $('#report').textContent = lines.join('\n');
 }
+
+/* ---------- 第二大脑：记录 / 自动分类 / 检索 / 阶段总结 ---------- */
+const TAG_RULES = [
+  ['工作', ['工作','项目','客户','会议','汇报','周报','需求','上线','deadline','老板','方案','对接','评审','排期']],
+  ['学习', ['学习','看书','读书','课程','单词','考试','笔记','教程','论文','复习','背']],
+  ['健康', ['睡','运动','跑步','健身','喝水','医院','体检','头疼','早睡','体重','锻炼','吃药']],
+  ['钱',   ['钱','工资','报销','预算','买','付','订阅','花','存','理财','账']],
+  ['关系', ['朋友','家人','同事','约','聊','道歉','请客','爸妈']],
+  ['灵感', ['想法','点子','灵感','idea','可以做','试试','设计','写一个','不如']],
+  ['情绪', ['累','烦','焦虑','难受','压力','崩','开心','委屈','emo']],
+  ['待办', ['要','记得','别忘','明天','下周','截止','完成','提交','回复','跟进']]
+];
+let noteQuery = '', noteTag = '';
+
+function classify(text){
+  const t = text.toLowerCase();
+  const out = [];
+  for(const [tag, kws] of TAG_RULES){
+    if(kws.some(k => t.includes(k))) out.push(tag);
+    if(out.length >= 3) break;
+  }
+  return out.length ? out : ['杂项'];
+}
+function noteRel(ts){
+  const d = Math.floor((Date.now() - ts) / 864e5);
+  if(d <= 0) return '今天';
+  if(d === 1) return '昨天';
+  if(d < 7) return d + ' 天前';
+  const dt = new Date(ts);
+  return `${dt.getMonth()+1}/${dt.getDate()}`;
+}
+function addNote(){
+  const ta = $('#noteInput');
+  const text = ta.value.trim();
+  if(!text){ toast('空的，不记'); return; }
+  state.notes.unshift({ id: 'n' + Date.now(), text, tags: classify(text), at: Date.now(), pinned: false });
+  ta.value = '';
+  save(); renderNotes();
+  say('praise', { force: true });
+  toast('已记下 · ' + state.notes[0].tags.join('/'));
+}
+function visibleNotes(){
+  const q = noteQuery.trim().toLowerCase();
+  return state.notes
+    .filter(n => !noteTag || (n.tags || []).includes(noteTag))
+    .filter(n => !q || n.text.toLowerCase().includes(q) || n.tags.join(' ').toLowerCase().includes(q))
+    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.at - a.at);
+}
+function renderNotes(){
+  const list = visibleNotes();
+  const box = $('#noteList');
+  if(!list.length){
+    box.innerHTML = '<div class="empty">' +
+      (state.notes.length ? '没筛出东西，换个词。' : '空的。想法不写下来就不存在。') + '</div>';
+  }else{
+    box.innerHTML = list.map(n => {
+      const done = n.taskId && state.tasks.some(t => t.id === n.taskId && t.done);
+      const act = n.taskId
+        ? `<button class="note-act" data-nact="goto">${done ? '已成任务 · 已完成' : '已成任务'}</button>`
+        : '<button class="note-act" data-nact="task">转为任务</button>';
+      return `<div class="note ${n.pinned ? 'pinned' : ''}" data-note="${n.id}">
+        <div class="note-body">
+          <div class="note-text">${escapeHtml(n.text)}</div>
+          <div class="note-meta">
+            ${(n.tags || []).map(t => `<span class="note-tag">${t}</span>`).join('')}
+            <span class="note-time">${noteRel(n.at)}</span>
+            ${act}
+            <button class="note-act" data-nact="pin">${n.pinned ? '取消置顶' : '置顶'}</button>
+            <button class="note-act danger" data-nact="del">删除</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  $('#noteHint').textContent = `${state.notes.length} 条`;
+
+  const counts = {};
+  state.notes.forEach(n => (n.tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; }));
+  const tags = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  $('#tagFilter').innerHTML = tags.length
+    ? tags.map(([t, c]) => `<button class="tag-btn ${noteTag === t ? 'on' : ''}" data-tag="${t}">${t} ${c}</button>`).join('')
+    : '<span style="font-size:11px;color:var(--ink-3)">还没有标签</span>';
+}
+function noteToTask(id){
+  const n = state.notes.find(x => x.id === id);
+  if(!n) return;
+  if(n.taskId){ toast('已经转过任务了'); return; }
+  const t = {
+    id: 't' + Date.now() + Math.random().toString(36).slice(2, 6),
+    title: n.text.split('\n')[0].slice(0, 60), due: '', done: false
+  };
+  state.tasks.unshift(t);
+  n.taskId = t.id;
+  save(); renderTasks(); renderNotes();
+  toast('已加入任务列表');
+}
+function genReview(){
+  const since = Date.now() - 7 * 864e5;
+  const recent = state.notes.filter(n => n.at >= since);
+  const tagCount = {};
+  recent.forEach(n => (n.tags || []).forEach(t => { tagCount[t] = (tagCount[t] || 0) + 1; }));
+  const top = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 4)
+    .map(([t, c]) => `${t} ${c}`).join('、') || '—';
+  const pending = recent.filter(n => !n.taskId && (n.tags || []).includes('待办'));
+
+  const habits = state.settings.habits || [];
+  const goal = state.settings.waterGoal || 8;
+  const scores = [];
+  for(let i = 0; i < 7; i++){
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const rec = i === 0 ? state.daily : state.archive[dkey(d)];
+    if(!rec) continue;
+    const items = habits.map(h => !!rec[h.id]).concat([Math.min(1, (rec.water || 0) / goal)]);
+    scores.push(Math.round(items.reduce((a, b) => a + b, 0) / items.length * 100));
+  }
+  const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+
+  const lines = [
+    `阶段总结 · 近 7 天（${dkey()} 生成）`,
+    `记录 ${recent.length} 条 · 未落地的待办 ${pending.length} 条 · 总积分 ${state.totalPoints || 0}`,
+    `标签分布：${top}`,
+    `打卡完成度均值 ${avg}%（${scores.length} 天有数据）`,
+    `任务：${state.tasks.filter(t => t.done).length}/${state.tasks.length} 完成`,
+    '',
+    pending.length
+      ? `卡在哪：${pending.slice(0, 3).map(n => '「' + n.text.split('\n')[0].slice(0, 14) + '」').join('')} 还只是记录，没变成动作。`
+      : '卡在哪：暂时没有堆积的待办记录。',
+    pending.length
+      ? '下一步：把上面几条拆成 25 分钟能做完的动作，然后只做第一条。'
+      : '下一步：从最早的「灵感」里挑一条，给它加个截止时间。'
+  ];
+  const out = $('#reviewOut');
+  out.hidden = false;
+  out.textContent = lines.join('\n');
+  return out.textContent;
+}
+
+$('#addNoteBtn').addEventListener('click', addNote);
+$('#noteInput').addEventListener('keydown', e => {
+  if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); addNote(); }
+});
+$('#noteSearch').addEventListener('input', e => { noteQuery = e.target.value; renderNotes(); });
+$('#tagFilter').addEventListener('click', e => {
+  const b = e.target.closest('[data-tag]'); if(!b) return;
+  noteTag = noteTag === b.dataset.tag ? '' : b.dataset.tag;
+  renderNotes();
+});
+$('#noteList').addEventListener('click', e => {
+  const act = e.target.closest('[data-nact]'); if(!act) return;
+  const row = e.target.closest('[data-note]'); if(!row) return;
+  const id = row.dataset.note, k = act.dataset.nact;
+  const n = state.notes.find(x => x.id === id); if(!n) return;
+  if(k === 'del'){ state.notes = state.notes.filter(x => x.id !== id); save(); renderNotes(); }
+  if(k === 'pin'){ n.pinned = !n.pinned; save(); renderNotes(); }
+  if(k === 'task') noteToTask(id);
+  if(k === 'goto'){ $('#taskList').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+});
+$('#genReviewBtn').addEventListener('click', () => { genReview(); toast('阶段总结已生成'); });
+$('#copyReview').addEventListener('click', async () => {
+  const text = $('#reviewOut').textContent;
+  if(!text){ toast('先生成一份总结'); return; }
+  try{ await navigator.clipboard.writeText(text); toast('总结已复制'); }
+  catch(e){ toast('复制失败，手动选一下吧'); }
+});
 
 /* ---------- 交互：任务 ---------- */
 function addTask(){
@@ -1359,7 +1586,7 @@ function bindSettings(){
 function renderAll(){
   $('#personaName').textContent = PERSONAS[state.persona].name;
   renderPoints(); renderTasks(); renderHabits(); renderPomo();
-  renderMetrics(); renderBars(); renderReport();
+  renderNotes(); renderBars(); renderReport();
 }
 
 /* ---------- 演示数据（?demo=1）---------- */
@@ -1386,6 +1613,13 @@ function seedDemo(){
     state.archive[dkey(dd)] = { points: pts[i - 1] || 0, water: 6, focusMin: 50, pomos: 2,
       wake: true, exercise: true, read: true, sleep: true };
   }
+  const now = Date.now();
+  state.notes = [
+    { id:'n1', text:'周报要写：这周推完了埋点改造，下周接推荐位联调。别写成流水账，先给结论。', tags:['工作','待办'], at: now - 2*36e5, pinned: true },
+    { id:'n2', text:'想法：把每天的打卡数据导出成一张图，月底发朋友圈，顺便当自我监督。', tags:['灵感'], at: now - 26*36e5, pinned: false },
+    { id:'n3', text:'明天记得回复设计稿的评论，三个问题都还没答。', tags:['工作','待办'], at: now - 50*36e5, pinned: false, taskId:'d1' },
+    { id:'n4', text:'最近老是十二点后才睡，早上起不来，白天靠咖啡硬撑。得把睡前刷手机掐掉。', tags:['健康','情绪'], at: now - 80*36e5, pinned: false }
+  ];
 }
 
 /* ---------- 启动 ---------- */
