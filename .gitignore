@@ -12,3 +12,8 @@ nanny_log.txt
 Thumbs.db
 .idea/
 .vscode/
+
+# 测试临时产物
+_*.html
+_*.py
+docs/_*.png
