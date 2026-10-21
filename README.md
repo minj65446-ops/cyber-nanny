@@ -5,6 +5,8 @@
 
 **在线面板** → <https://minj65446-ops.github.io/cyber-nanny/> ｜ 想看满数据的样子，加 `?demo=1`
 
+打开只有两个问题：**今天做哪三件事**、**欠着多少**。
+
 ![宠](docs/pet.png)
 
 ![Python](https://img.shields.io/badge/desktop--pet-Python%20%2B%20tkinter-5546ff)
@@ -94,6 +96,34 @@ SCHEDULE = [
 `%APPDATA%\cyber-nanny\pet.json`（位置、大小、人格、番茄数）与 `pet.log`（崩了会写在这里）。
 删掉 `pet.json` 就回到默认状态。
 
+## 打开就是一句话：今天做三件，欠着几件
+
+打卡、热力图、第二大脑都在，但都不在第一屏。第一屏只有两张纸：一张写今天，一张记账。
+
+### 今天
+
+只放 3 条。到期在今天、或者根本没定时间的，才算"今天该做的"；写了「明天 18 点 交周报」的不会挤进来，只在右上角报一句「还有 1 件排在后头」。勾掉一条就少一条，清空了给一句收尾，而不是空白。
+
+### 欠账
+
+过了截止时间没做的事，**不会因为睡觉就消失**。
+
+- 首页头顶一条红带：欠了几件、最老一件压了多久。
+- 点「去清算」跳到全部任务，逾期的自动顶到最前面。
+- 每条逾期任务写的是「欠了 3 小时 · 今天 08:55」，不是干巴巴的「已逾期」。
+
+只记"今天做了"的 App 满地都是，能记住"你还欠着什么"的很少——这是她存在的理由。
+
+### 周审判
+
+点「今天」卡右上角的**周审判**，把这一周画成一张 1080×1350 的图：达标率、打卡天数、专注分钟、欠账清单，再配一句判决语。
+
+![verdict](docs/verdict.png)
+
+三个按钮：**保存图片**、**复制图片**（直接粘进微信群）、**分享**（手机上走系统分享面板，能发到任何 App）。
+
+一个人偷偷坚持很难，发出去被人问一句"你怎么又没做到"要有效得多。
+
 ## 第一次打开：30 秒配好
 
 不用从空白开始。首次进入会问两个问题——作息（早起 / 正常 / 夜猫）和主要盯什么（学习 / 工作 / 健身 / 都要），然后自动生成：
@@ -136,6 +166,9 @@ SCHEDULE = [
 | 番茄钟 | 15 / 25 / 45 分钟 + 工作-休息循环，进度跨刷新可恢复 |
 | 久坐提醒 | 默认 45 分钟，提示音 + 台词 |
 | 积分体系 | 正负都记，负数顶栏变红，撤销完成按实得分回退 |
+| 今天三件事 | 首页只放 3 条今天该做的，勾掉一条少一条 |
+| 欠账 | 逾期不清零，头顶红带催账，任务行显示欠了多久 |
+| 周审判 | 一周成绩导出成图上群，能保存 / 复制 / 系统分享 |
 | 断链保护 | 每天可请一次假：不加分但连续不断，每周一张 |
 | 年度热力图 | 52 周 × 7 天，四档色阶，配当前/最长连续、30 天达标率 |
 | 薄弱日分析 | 统计近 8 周各星期达标率，点名你最容易掉链子的那天 |
@@ -158,7 +191,7 @@ SCHEDULE = [
 
 | Tab | 里面有什么 |
 |---|---|
-| 今天 | 打卡、喝水、今日体检（积分 / 完成率 / 连续 / 距睡觉） |
+| 今天 | 三件事、欠账、打卡、喝水、今日体检（积分 / 完成率 / 连续 / 距睡觉） |
 | 任务 | 一句话加任务、常用任务、清单 |
 | 专注 | 番茄钟、今日专注与番茄数 |
 | 记录 | 第二大脑：随手记、检索、转任务 |
@@ -246,6 +279,8 @@ cyber-nanny/
 - [x] 首次引导：30 秒生成习惯 / 作息 / 任务
 - [x] 任务一句话建（自动拆截止时间）
 - [x] 手机端底部 Tab 布局 + PWA 安装
+- [x] 首页减法：今天三件事 + 欠账不清零
+- [x] 周审判：一周成绩导出成图上群
 - [ ] 系统托盘图标（关掉窗口还能从托盘叫回）
 - [ ] 桌宠与面板数据互通（两边打卡合并统计）
 - [ ] 多角色皮肤包
@@ -260,4 +295,4 @@ cyber-nanny/
 
 ---
 
-**English**: Nono is a desktop pet plus a local dashboard. The pet (`nanny_pet.py`) is a frameless, transparent, always-on-top tkinter window that sits in the corner of your screen — drag it, click it for a line, double-click to open the panel, right-click for pomodoro / persona / size / autostart. The panel (`index.html`) tracks habits, tasks, pomodoro, notes and a year-long consistency heatmap, with streak forgiveness, dark mode and PWA install. No build step, no backend, no telemetry — all data stays on your machine.
+**English**: Nono is a desktop pet plus a local dashboard. The pet (`nanny_pet.py`) is a frameless, transparent, always-on-top tkinter window that sits in the corner of your screen — drag it, click it for a line, double-click to open the panel, right-click for pomodoro / persona / size / autostart. The panel (`index.html`) opens with just two questions — what three things are due today, and what you still owe. Overdue tasks never silently disappear; they pile up in a debt bar until you clear them. A weekly "verdict" renders your week as a shareable 1080×1350 image. Habits, pomodoro, notes and a year-long heatmap are still there, one tap deeper, with streak forgiveness, dark mode and PWA install. No build step, no backend, no telemetry — all data stays on your machine.

@@ -427,6 +427,58 @@
   }
   .quick-add button:hover{border-style:solid;border-color:var(--accent);color:var(--accent)}
 
+
+  /* ---------- 今天：三件事 + 欠账 ---------- */
+  .three{display:flex;flex-direction:column;gap:8px}
+  .three-item{
+    display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:12px;
+    border:1px solid var(--line);background:var(--panel-2);transition:.15s;
+  }
+  .three-item:hover{border-color:#d6d8e6}
+  .three-item.debt{border-color:var(--danger-line);background:var(--danger-soft)}
+  .three-item .num{
+    font-family:var(--mono);font-size:11px;color:var(--ink-3);width:16px;flex:none;text-align:center;
+  }
+  .three-item .t{flex:1;min-width:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .three-item .meta{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);flex:none}
+  .three-item.debt .meta{color:var(--danger);font-weight:700}
+  .three-empty{font-size:12.5px;color:var(--ink-3);padding:18px 4px;text-align:center}
+  .three-add{display:flex;gap:8px;margin-top:10px}
+  .three-add input{
+    flex:1;min-width:0;font:inherit;font-size:13px;padding:9px 12px;border-radius:10px;
+    border:1px solid var(--line);background:var(--field);color:var(--ink);outline:none;
+  }
+  .three-add input:focus{border-color:#bdb4ff;background:var(--panel);box-shadow:0 0 0 3px rgba(85,70,255,.09)}
+  .debt-bar[hidden]{display:none}
+  .debt-bar{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--danger-soft);color:var(--danger);border:1px solid var(--danger-line);
+    border-radius:10px;padding:10px 13px;font-size:12.5px;margin-bottom:12px;
+  }
+  .debt-bar b{font-weight:750}
+  .debt-bar button{
+    font:inherit;font-size:11.5px;margin-left:auto;padding:4px 10px;border-radius:99px;cursor:pointer;
+    border:1px solid var(--danger-line);background:transparent;color:var(--danger);flex:none;
+  }
+  .three-clear{
+    display:flex;align-items:center;gap:8px;margin-top:6px;padding:14px 2px;
+    font-size:12.5px;color:var(--ink-3);
+  }
+  .card h2 .h-act.verdict{
+    display:inline-flex;align-items:center;gap:5px;
+    background:var(--accent-soft);border-color:var(--accent-soft);color:var(--accent-ink);font-weight:650;
+  }
+  .card h2 .h-act.verdict:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* ---------- 判决书 ---------- */
+  .verdict-sheet{width:min(520px,100%)}
+  #verdictCanvas{
+    width:100%;height:auto;display:block;border-radius:14px;
+    box-shadow:0 18px 40px -24px rgba(0,0,0,.55);
+  }
+  .verdict-actions{display:flex;gap:8px;margin-top:14px}
+  .verdict-actions .btn{flex:1}
+
   /* ---------- 弹层 / 快捷键 ---------- */
   .modal{
     position:fixed;inset:0;z-index:120;display:none;place-items:center;padding:20px;
@@ -549,10 +601,11 @@
   .grid{grid-template-columns:repeat(12,minmax(0,1fr))}
   @media (max-width:900px){
     .span-7,.span-5,.span-4,.span-6{grid-column:span 12}
-    .hero{grid-template-columns:1fr;text-align:center;gap:14px}
-    .avatar{justify-self:center}
+    /* 平板竖屏也走左图右话，居中版人物太大，一屏全是脸 */
+    .hero{grid-template-columns:96px 1fr;text-align:left;gap:14px;align-items:center}
+    .avatar{justify-self:start}
     .bubble::before{display:none}
-    .quick{justify-content:center}
+    .quick{justify-content:flex-start;flex-wrap:wrap}
     .pomo{flex-direction:column}
     .task-add input[type=datetime-local]{width:100%}
     .task-add{flex-wrap:wrap}
@@ -576,6 +629,15 @@
     .points em{font-size:13px}
 
     .hero{grid-template-columns:84px 1fr;gap:12px;padding:14px;text-align:left;align-items:center;margin-top:10px}
+    body[data-tab="today"] .hero{grid-template-columns:72px 1fr;gap:10px;padding:12px}
+    body[data-tab="today"] .avatar{width:72px;height:72px}
+    body[data-tab="today"] .char{width:72px;height:72px}
+    body[data-tab="today"] .char-fallback svg{width:64px;height:64px}
+    body[data-tab="today"] .bubble{
+      font-size:13px;min-height:44px;padding:9px 11px;line-height:1.5;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    }
+    body[data-tab="today"] .quick button{font-size:11.5px;padding:6px 9px}
     .avatar{width:84px;height:84px;justify-self:start}
     .char{width:84px;height:84px;border-width:2px}
     .char-fallback svg{width:74px;height:74px}
@@ -673,7 +735,7 @@
       <div class="logo">CN</div>
       <div>
         <h1>诺诺</h1>
-        <span>赛博管家 · NONO v3.2</span>
+        <span>赛博管家 · NONO v3.3</span>
       </div>
     </div>
     <div class="clock"><b id="clock">--:--</b> <span id="datestr"></span></div>
@@ -730,11 +792,29 @@
 
   <div class="grid">
 
+    <!-- 今天：只看三件事 -->
+    <div class="card span-12" data-tab="today">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 3l2.2 5.6L20 10l-4.4 3.6L16.8 20 12 16.8 7.2 20l1.2-6.4L4 10l5.8-1.4z"/></svg>
+        今天 <span class="hint" id="todayHint">—</span>
+        <button class="h-act verdict" id="verdictBtn" title="把这一周的成绩做成一张图，可以直接发群">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;vertical-align:-1px"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v3M16 4v3"/></svg>
+          周审判
+        </button>
+      </h2>
+      <div class="debt-bar" id="debtBar" hidden></div>
+      <div class="three" id="threeList"></div>
+      <div class="three-add">
+        <input type="text" id="threeInput" placeholder="再加一件，例如：明天18点 交周报" maxlength="80" />
+        <button class="btn tiny" id="threeAdd">加</button>
+      </div>
+    </div>
+
     <!-- 任务 -->
     <div class="card span-7" data-tab="tasks">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-        今日任务 <span class="hint" id="taskHint">0 / 0</span>
+        全部任务 <span class="hint" id="taskHint">0 / 0</span>
       </h2>
       <div class="task-add">
         <input type="text" id="taskInput" placeholder="直接写「明天18点 交周报」，时间会自动拆出来" maxlength="80" />
@@ -905,7 +985,7 @@
   </div>
 
   <div class="foot">
-    <span>NONO v3.1 · MIT License</span>
+    <span>NONO v3.3 · MIT License</span>
     <span>按 <kbd>?</kbd> 查看快捷键</span>
     <span>立绘为 AI 生成，可替换 assets/ 内同名图片换成你自己的角色</span>
     <span>数据只留本机 localStorage，不上传</span>
@@ -934,6 +1014,20 @@
     <span>我的</span>
   </button>
 </nav>
+
+<div class="modal" id="verdictModal" role="dialog" aria-modal="true" aria-labelledby="verdictTitle">
+  <div class="sheet verdict-sheet">
+    <h3 id="verdictTitle">本周审判</h3>
+    <p class="sub">一张图，发群里。别人回你一句，才算真的有用。</p>
+    <canvas id="verdictCanvas" width="1080" height="1350"></canvas>
+    <div class="verdict-actions">
+      <button class="btn tiny" id="verdictSave">保存图片</button>
+      <button class="btn ghost tiny" id="verdictCopy">复制图片</button>
+      <button class="btn ghost tiny" id="verdictShare">分享</button>
+      <button class="btn ghost tiny" data-close aria-label="关闭">关闭</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal" id="setupModal" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
   <div class="sheet">
@@ -1147,6 +1241,13 @@ function load(){
     s.pomo = Object.assign({}, structuredClone(DEFAULT_STATE.pomo), s.pomo || {});
     s.archive = s.archive || {};
     s.tasks = s.tasks || [];
+    // 老数据没有 created：从 id 里的时间戳补，实在没有就当作今天
+    s.tasks.forEach(t => {
+      if(!t.created){
+        const m = String(t.id || '').match(/(\d{13})/);
+        t.created = m ? Number(m[1]) : Date.now();
+      }
+    });
     s.notes = s.notes || [];
     if(!s.daily || s.daily.date !== dkey()) s = rollover(s);
     return s;
@@ -1297,7 +1398,7 @@ function renderTasks(){
         </div>
         <div class="t-body">
           <div class="t-title">${escapeHtml(t.title)}</div>
-          ${t.due ? `<div class="t-due">${isOverdue(t) ? '已逾期 · ' : '截止 '}${fmtDue(t.due)}</div>` : ''}
+          ${t.due ? `<div class="t-due">${isOverdue(t) ? `欠了 ${debtLabel(t)} · ` : '截止 '}${fmtDue(t.due)}</div>` : ''}
         </div>
         <button class="del" data-act="del" title="删除" aria-label="删除任务">&times;</button>
       </div>`).join('');
@@ -1890,13 +1991,330 @@ function parseTaskInput(raw){
   return { title: text || String(raw || '').trim(), due: due ? localIsoOf(due) : '' };
 }
 
+/* ---------- 今天：三件事 + 欠账 ---------- */
+function isDebt(t){
+  if(t.done) return false;
+  if(t.due) return new Date(t.due).getTime() < Date.now();
+  return !!t.created && dkey(new Date(t.created)) < dkey();
+}
+function debtDays(t){
+  const base = t.due ? new Date(t.due).getTime() : (t.created || Date.now());
+  return Math.max(1, Math.floor((Date.now() - base) / 864e5));
+}
+/* 显示用：刚逾期几分钟就别写“欠 1 天” */
+function debtLabel(t){
+  const base = t.due ? new Date(t.due).getTime() : (t.created || Date.now());
+  const ms = Math.max(0, Date.now() - base);
+  if(ms < 36e5) return Math.max(1, Math.round(ms / 6e4)) + ' 分钟';
+  if(ms < 864e5) return Math.round(ms / 36e5) + ' 小时';
+  return Math.floor(ms / 864e5) + ' 天';
+}
+function debtList(){
+  return state.tasks.filter(isDebt).sort((a, b) => (a.created || 0) - (b.created || 0));
+}
+function endOfToday(){
+  const d = new Date();
+  d.setHours(23, 59, 59, 999);
+  return d.getTime();
+}
+function laterTasks(){
+  // 还没到期、但排在今天之后的任务：不进今天的三件事，只在提示里报个数量
+  const end = endOfToday();
+  return state.tasks.filter(t => !t.done && !isDebt(t) && t.due && new Date(t.due).getTime() > end);
+}
+function threeList(){
+  /* 欠账单独在头顶那条里催，不进三件事；这里只放「今天该做的」：到期在今天的、没定时间的。
+     排期在以后的（明天交周报）不挤进今天，免得每次打开都看见一堆不属于今天的事。 */
+  const end = endOfToday();
+  return state.tasks
+    .filter(t => !t.done && !isDebt(t))
+    .filter(t => !t.due || new Date(t.due).getTime() <= end)
+    .sort((a, b) => {
+      if(a.due && b.due) return new Date(a.due) - new Date(b.due);
+      if(a.due) return -1;
+      if(b.due) return 1;
+      return (b.created || 0) - (a.created || 0);
+    })
+    .slice(0, 3);
+}
+function toggleTask(task){
+  task.done = !task.done;
+  if(task.done){
+    const late = isOverdue({ ...task, done: false });
+    const pts = late ? 5 : PTS.task;
+    task.award = pts;
+    addPoints(pts, late ? '逾期补完，减半' : '任务完成');
+    say(late ? 'nag' : 'praise', { force: true });
+    if(document.hidden) notify('任务完成', task.title);
+  }else{
+    deduct(task.award || PTS.task, '撤销完成');
+    task.award = 0;
+  }
+  save(); renderTasks(); renderToday();
+}
+function renderToday(){
+  const box = $('#threeList');
+  if(!box) return;
+  const list = threeList();
+  const future = laterTasks().length;
+  if(!list.length){
+    const debts = debtList().length;
+    const tail = debts ? `上面那 ${debts} 件欠账，今天想还就挑一件。` : '写一件你现在就想得起来的事。';
+    box.innerHTML = `<div class="three-clear">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" style="width:15px;height:15px;flex:none;color:var(--accent)"><path d="M20 6L9 17l-5-5"/></svg>
+      <span>今天排的都做完了。${tail}</span></div>`;
+  }else{
+    box.innerHTML = list.map((t, i) => {
+      const meta = t.due ? fmtDue(t.due) : '';
+      return `<div class="three-item">
+        <div class="tick" data-done="${t.id}" role="button" tabindex="0" aria-label="完成 ${escapeHtml(t.title)}">
+          <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div class="num">${i + 1}</div>
+        <div class="t">${escapeHtml(t.title)}</div>
+        ${meta ? `<div class="meta">${meta}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+  const openCount = state.tasks.filter(t => !t.done).length;
+  $('#todayHint').textContent = openCount
+    ? `还剩 ${openCount} 件${future ? ` · ${future} 件排在后头` : ''}`
+    : '清空了';
+
+  const debts = debtList();
+  const bar = $('#debtBar');
+  if(debts.length){
+    const oldest = debts[0];
+    bar.hidden = false;
+    bar.innerHTML = `<span>欠着 <b>${debts.length}</b> 件事，最老一件已经压了 <b>${debtLabel(oldest)}</b>。今天挑一件还掉。</span>
+      <button type="button" id="debtGo">去清算</button>`;
+    $('#debtGo').onclick = () => setTab('tasks');
+  }else{
+    bar.hidden = true;
+  }
+}
+function addFromThree(){
+  const inp = $('#threeInput');
+  const raw = inp.value.trim();
+  if(!raw){ toast('写点什么'); return; }
+  const parsed = parseTaskInput(raw);
+  pushTask(parsed.title, parsed.due);
+  inp.value = '';
+  toast(parsed.due ? '已加入 · 截止 ' + fmtDue(parsed.due) : '已加入');
+}
+$('#threeList').addEventListener('click', e => {
+  const tick = e.target.closest('[data-done]');
+  if(!tick) return;
+  const t = state.tasks.find(x => x.id === tick.dataset.done);
+  if(t) toggleTask(t);
+});
+$('#threeAdd').addEventListener('click', addFromThree);
+$('#threeInput').addEventListener('keydown', e => { if(e.key === 'Enter') addFromThree(); });
+
+/* ---------- 周审判：一张能发群的图 ---------- */
+function weekStats(){
+  const habits = state.settings.habits || [];
+  const days = [];
+  const start = weekStart();
+  for(let i = 0; i < 7; i++){
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    if(d.getTime() > Date.now()) break;
+    const k = dkey(d);
+    const rec = k === dkey() ? state.daily : state.archive[k];
+    days.push(rec || null);
+  }
+  const passed = days.filter(r => r && (r.excused || (scoreOf(r, habits, state.settings.waterGoal) || 0) >= 60)).length;
+  const focus = days.reduce((a, r) => a + ((r && r.focusMin) || 0), 0);
+  const debts = debtList();
+  return {
+    days: days.length, passed, focus,
+    rate: days.length ? Math.round(passed / days.length * 100) : 0,
+    debts, open: state.tasks.filter(t => !t.done).length,
+    doneToday: Object.keys(state.daily).filter(k => state.daily[k] === true).length
+  };
+}
+function verdictLine(st){
+  if(st.debts.length >= 3) return '欠账堆到 ' + st.debts.length + ' 件了。不是没时间，是你一直在躲最难受的那件事。';
+  if(st.rate >= 80) return '这周没什么可挑的。别得意，下周才是真正的考验。';
+  if(st.rate >= 50) return '一半都不到。你不是做不到，是每天只肯做舒服的那部分。';
+  if(st.rate > 0) return '就这点完成度，也配叫安排？先把最小的一件做完。';
+  return '这周基本没记录。不是忘了，是不想面对。';
+}
+function weekLabel(){
+  const d = new Date();
+  const start = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - start) / 864e5 + start.getDay() + 1) / 7);
+  return `${d.getFullYear()} 第 ${week} 周`;
+}
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function drawWrapped(ctx, text, x, y, maxW, lh, maxLines){
+  const chars = String(text).split('');
+  let line = '', lines = [];
+  for(const ch of chars){
+    if(ctx.measureText(line + ch).width > maxW && line){
+      lines.push(line); line = ch;
+    }else line += ch;
+  }
+  if(line) lines.push(line);
+  if(maxLines && lines.length > maxLines){
+    lines = lines.slice(0, maxLines);
+    lines[maxLines - 1] = lines[maxLines - 1].slice(0, -1) + '…';
+  }
+  lines.forEach((l, i) => ctx.fillText(l, x, y + i * lh));
+  return lines.length;
+}
+function drawVerdict(){
+  const st = weekStats();
+  const cv = $('#verdictCanvas');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const F = '"Microsoft YaHei","PingFang SC",sans-serif';
+  const cx = W / 2;
+
+  ctx.fillStyle = '#101219';
+  ctx.fillRect(0, 0, W, H);
+
+  const g = ctx.createRadialGradient(cx, -120, 0, cx, -120, W * 0.95);
+  g.addColorStop(0, 'rgba(85,70,255,.55)');
+  g.addColorStop(1, 'rgba(16,18,25,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H * 0.6);
+
+  const g2 = ctx.createRadialGradient(W * 0.92, H * 0.96, 0, W * 0.92, H * 0.96, W * 0.7);
+  g2.addColorStop(0, 'rgba(0,179,164,.22)');
+  g2.addColorStop(1, 'rgba(16,18,25,0)');
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9d8dff';
+  ctx.font = `700 34px ${F}`;
+  ctx.fillText('NONO · 周审判', cx, 120);
+  ctx.fillStyle = 'rgba(255,255,255,.4)';
+  ctx.font = `400 28px ${F}`;
+  ctx.fillText(weekLabel(), cx, 172);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = `800 250px ${F}`;
+  ctx.fillText(st.rate + '%', cx, 400);
+
+  ctx.fillStyle = 'rgba(255,255,255,.5)';
+  ctx.font = `400 32px ${F}`;
+  ctx.fillText(`本周达标 ${st.passed} / ${st.days} 天`, cx, 464);
+
+  // 三块数据
+  const gap = 28, cw = (W - 168 - gap * 2) / 3, cy = 530, chh = 168;
+  [['打卡', `${st.passed}/${st.days} 天`], ['专注', `${st.focus} 分钟`], ['欠账', `${st.debts.length} 件`]]
+    .forEach((it, i) => {
+      const x = 84 + i * (cw + gap);
+      ctx.fillStyle = 'rgba(255,255,255,.07)';
+      roundRect(ctx, x, cy, cw, chh, 24); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,.42)';
+      ctx.font = `400 26px ${F}`;
+      ctx.fillText(it[0], x + cw / 2, cy + 62);
+      ctx.fillStyle = '#fff';
+      ctx.font = `700 46px ${F}`;
+      ctx.fillText(it[1], x + cw / 2, cy + 124);
+    });
+
+  ctx.strokeStyle = 'rgba(255,255,255,.1)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(84, 780); ctx.lineTo(W - 84, 780); ctx.stroke();
+
+  // 判决语：左侧一根紫条，比引号干净
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#8f7dff';
+  roundRect(ctx, 84, 852, 8, 132, 4);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,255,255,.95)';
+  ctx.font = `700 48px ${F}`;
+  drawWrapped(ctx, verdictLine(st), 124, 888, W - 208, 68, 3);
+
+  // 欠账
+  if(st.debts.length){
+    ctx.fillStyle = '#ff8b8f';
+    ctx.font = `700 28px ${F}`;
+    ctx.fillText('还欠着', 84, 1110);
+    ctx.fillStyle = 'rgba(255,255,255,.78)';
+    ctx.font = `400 30px ${F}`;
+    st.debts.slice(0, 3).forEach((t, i) => {
+      const line = `· ${t.title}（欠 ${debtLabel(t)}）`;
+      ctx.fillText(line.length > 24 ? line.slice(0, 23) + '…' : line, 84, 1168 + i * 52);
+    });
+  }else{
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ctx.font = `400 30px ${F}`;
+    ctx.fillText('没有欠账。这周你没什么好狡辩的。', 84, 1110);
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,.3)';
+  ctx.font = `400 24px ${F}`;
+  ctx.fillText(`${dkey()} · minj65446-ops.github.io/cyber-nanny`, 84, H - 62);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#3fd6c4';
+  ctx.font = `700 24px ${F}`;
+  ctx.fillText('赛博管家 · 诺诺', W - 84, H - 62);
+  ctx.textAlign = 'left';
+}
+function openVerdict(){
+  drawVerdict();
+  $('#verdictModal').classList.add('open');
+}
+$('#verdictBtn').addEventListener('click', openVerdict);
+$('#verdictModal').addEventListener('click', e => {
+  if(e.target.id === 'verdictModal' || e.target.closest('[data-close]')) $('#verdictModal').classList.remove('open');
+});
+function verdictBlob(){
+  return new Promise(res => $('#verdictCanvas').toBlob(res, 'image/png'));
+}
+$('#verdictSave').addEventListener('click', async () => {
+  const b = await verdictBlob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = `nono-verdict-${dkey()}.png`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('判决书已保存');
+});
+$('#verdictCopy').addEventListener('click', async () => {
+  try{
+    const b = await verdictBlob();
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]);
+    toast('已复制图片，去群里粘贴');
+  }catch(err){
+    toast('这个浏览器不支持复制图片，用「保存图片」');
+  }
+});
+$('#verdictShare').addEventListener('click', async () => {
+  try{
+    const b = await verdictBlob();
+    const file = new File([b], `nono-verdict-${dkey()}.png`, { type: 'image/png' });
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      await navigator.share({ files: [file], title: '诺诺的周审判' });
+    }else{
+      toast('这个浏览器不支持直接分享，用「保存图片」');
+    }
+  }catch(err){}
+});
+
 /* ---------- 交互：任务 ---------- */
 function pushTask(title, due){
   state.tasks.unshift({
     id: 't' + Date.now() + Math.random().toString(36).slice(2, 6),
-    title, due: due || '', done: false
+    title, due: due || '', done: false, created: Date.now()
   });
-  save(); renderTasks();
+  save(); renderTasks(); renderToday();
 }
 const TASK_TPL = ['写周报', '运动 20 分钟', '读 10 页书', '收拾桌面', '准备明天的衣服'];
 function renderTaskTpl(){
@@ -1929,21 +2347,7 @@ $('#taskList').addEventListener('click', e => {
   const task = state.tasks.find(t => t.id === id); if(!task) return;
   const act = e.target.closest('[data-act]');
   if(!act) return;
-  if(act.dataset.act === 'toggle'){
-    task.done = !task.done;
-    if(task.done){
-      const late = isOverdue({ ...task, done: false, _nagged: false });
-      const pts = late ? 5 : PTS.task;
-      task.award = pts;
-      addPoints(pts, late ? '逾期补完，减半' : '任务完成');
-      say(late ? 'nag' : 'praise', { force: true });
-      if(document.hidden) notify('任务完成', task.title);
-    }else{
-      deduct(task.award || PTS.task, '撤销完成');
-      task.award = 0;
-    }
-    save(); renderTasks();
-  }
+  if(act.dataset.act === 'toggle') toggleTask(task);
   if(act.dataset.act === 'del'){
     state.tasks = state.tasks.filter(t => t.id !== id);
     save(); renderTasks();
@@ -2433,7 +2837,7 @@ function registerSW(){
 function renderAll(){
   $('#personaName').textContent = PERSONAS[state.persona].name;
   renderPoints(); renderTasks(); renderHabits(); renderPomo();
-  renderNotes(); renderBars(); renderReport();
+  renderNotes(); renderBars(); renderReport(); renderToday();
 }
 
 /* ---------- 演示数据（?demo=1）---------- */
@@ -2451,6 +2855,8 @@ function seedDemo(){
   state.tasks = [
     { id:'d1', title:'交本周周报', due: localIso(-30), done: false },
     { id:'d2', title:'背 30 个单词', due: localIso(90), done: false },
+    { id:'d4', title:'把推荐位的埋点补上', due: localIso(-150), done: false },
+    { id:'d5', title:'整理这周的三条笔记给组长', due: localIso(1440), done: false },
     { id:'d3', title:'复盘上周三个失误', due: '', done: true }
   ];
   const pts = [52, 96, 40, 118, 64, 88];

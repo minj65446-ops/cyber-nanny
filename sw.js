@@ -5,7 +5,7 @@
    - 跨域请求完全不接管
    升级时改 VERSION，activate 阶段清掉旧缓存。 */
 
-const VERSION = 'v2.0.0';
+const VERSION = 'v3.3.0';
 const CACHE = 'cyber-nanny-' + VERSION;
 const CORE = [
   './',
