@@ -547,18 +547,6 @@
 
   /* 窄屏：避免内容把网格撑破 */
   .grid{grid-template-columns:repeat(12,minmax(0,1fr))}
-  @media (max-width:600px){
-    .topbar{gap:8px 10px;padding:10px 13px}
-    .brand{gap:8px}
-    .brand span{display:none}
-    .clock{font-size:12px;order:9;width:100%;padding-left:2px}
-    .clock #datestr{display:none}
-    .points{padding:6px 11px;font-size:12px}
-    body{padding:14px 12px 64px}
-    .hero{padding:18px 16px}
-    .card{padding:15px}
-    .streak-stats{grid-template-columns:1fr 1fr}
-  }
   @media (max-width:900px){
     .span-7,.span-5,.span-4,.span-6{grid-column:span 12}
     .hero{grid-template-columns:1fr;text-align:center;gap:14px}
@@ -568,6 +556,96 @@
     .pomo{flex-direction:column}
     .task-add input[type=datetime-local]{width:100%}
     .task-add{flex-wrap:wrap}
+  }
+
+  /* ---------- 手机端：底部 Tab 的单列布局 ---------- */
+  .tabbar{display:none}
+  @media (hover:none){
+    .task .del,.note-act{opacity:1}
+  }
+  @media (max-width:720px){
+    body{padding:10px 12px calc(76px + env(safe-area-inset-bottom))}
+    .topbar{gap:8px;padding:9px 12px;border-radius:12px}
+    .brand{gap:8px}
+    .brand span{display:none}
+    .brand h1{font-size:14px}
+    .logo{width:30px;height:30px;border-radius:9px;font-size:12px}
+    .clock{display:none}
+    .chip{padding:5px 10px;font-size:11.5px}
+    .points{padding:5px 11px;font-size:12px}
+    .points em{font-size:13px}
+
+    .hero{grid-template-columns:84px 1fr;gap:12px;padding:14px;text-align:left;align-items:center;margin-top:10px}
+    .avatar{width:84px;height:84px;justify-self:start}
+    .char{width:84px;height:84px;border-width:2px}
+    .char-fallback svg{width:74px;height:74px}
+    .expr-tag{bottom:-6px;font-size:8.5px;padding:2px 7px}
+    .bubble{font-size:14px;line-height:1.55;padding:11px 13px;min-height:50px;border-radius:12px}
+    .bubble::before{display:none}
+    .quick{gap:6px;justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+    .quick::-webkit-scrollbar{display:none}
+    .quick button{padding:7px 11px;font-size:12px;flex:none}
+
+    /* 除“今天”外，人物缩成一条，把首屏留给内容 */
+    body:not([data-tab="today"]) .hero{padding:9px 12px;grid-template-columns:52px 1fr;gap:10px}
+    body:not([data-tab="today"]) .avatar{width:52px;height:52px}
+    body:not([data-tab="today"]) .char{width:52px;height:52px;border-width:2px}
+    body:not([data-tab="today"]) .char-fallback svg{width:46px;height:46px}
+    body:not([data-tab="today"]) .expr-tag{display:none}
+    body:not([data-tab="today"]) .quick{display:none}
+    body:not([data-tab="today"]) .bubble{
+      font-size:12.5px;min-height:38px;padding:8px 11px;line-height:1.45;
+      display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;
+    }
+
+    .grid{display:block;margin-top:10px}
+    .card{display:none;padding:14px;margin-bottom:10px}
+    body[data-tab="today"] .card[data-tab~="today"],
+    body[data-tab="tasks"] .card[data-tab~="tasks"],
+    body[data-tab="focus"] .card[data-tab~="focus"],
+    body[data-tab="notes"] .card[data-tab~="notes"],
+    body[data-tab="me"]    .card[data-tab~="me"]{display:block}
+    .card h2{margin-bottom:12px}
+
+    .task-add{display:grid;grid-template-columns:1fr auto;gap:6px}
+    .task-add input[type=text]{grid-column:1/-1;font-size:16px;padding:11px 12px}
+    .task-add input[type=datetime-local]{width:100%;font-size:13px;padding:10px}
+    .task-add .btn{padding:10px 18px}
+    .tasks,.notes{max-height:none}
+    .task{padding:12px}
+    .t-title{font-size:14px}
+    .quick-add button{font-size:12px;padding:6px 11px}
+    .habit{padding:13px}
+    .habit-add input{font-size:16px;padding:10px 12px}
+    .cup{height:46px}
+    .streak-stats{grid-template-columns:1fr 1fr;gap:8px}
+    .ss-item{padding:10px 11px}
+    .heat{grid-auto-columns:12px;grid-template-rows:repeat(7,12px);gap:3px}
+    .heat i{width:12px;height:12px}
+    .heat-days{grid-template-rows:repeat(7,12px);gap:3px;line-height:12px}
+    .bar-col .lbl{font-size:9px}
+    .note-add textarea{font-size:16px}
+    .note-bar input{font-size:16px}
+    .report{font-size:11.5px;line-height:1.8}
+    .field input,.field select{font-size:16px;padding:10px}
+    .foot{display:none}
+
+    .tabbar{
+      display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;
+      background:var(--glass);backdrop-filter:blur(14px);
+      border-top:1px solid var(--line);
+      padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    }
+    .tabbar button{
+      flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+      background:none;border:none;font:inherit;font-size:10px;color:var(--ink-3);
+      padding:5px 0 3px;border-radius:10px;cursor:pointer;transition:color .15s;
+    }
+    .tabbar button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .tabbar button.on{color:var(--accent)}
+    .tabbar button.on svg{stroke-width:2.1}
+    .modal{padding:12px}
+    .sheet{padding:18px;max-height:88vh}
   }
 </style>
 <script>
@@ -595,7 +673,7 @@
       <div class="logo">CN</div>
       <div>
         <h1>诺诺</h1>
-        <span>赛博管家 · NONO v3.1</span>
+        <span>赛博管家 · NONO v3.2</span>
       </div>
     </div>
     <div class="clock"><b id="clock">--:--</b> <span id="datestr"></span></div>
@@ -653,7 +731,7 @@
   <div class="grid">
 
     <!-- 任务 -->
-    <div class="card span-7">
+    <div class="card span-7" data-tab="tasks">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         今日任务 <span class="hint" id="taskHint">0 / 0</span>
@@ -668,7 +746,7 @@
     </div>
 
     <!-- 番茄钟 -->
-    <div class="card span-5">
+    <div class="card span-5" data-tab="focus">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
         专注计时 <span class="hint" id="pomoHint">待命</span>
@@ -708,7 +786,7 @@
     </div>
 
     <!-- 打卡 -->
-    <div class="card span-6">
+    <div class="card span-6" data-tab="today">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
         每日打卡 <span class="hint" id="habitHint">0 / 5</span>
@@ -723,7 +801,7 @@
     </div>
 
     <!-- 数据 -->
-    <div class="card span-6">
+    <div class="card span-6" data-tab="today">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
         今日体检 <span class="hint" id="gradeHint">—</span>
@@ -742,7 +820,7 @@
     </div>
 
     <!-- 坚持记录 -->
-    <div class="card span-12">
+    <div class="card span-12" data-tab="me">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
         坚持记录 <span class="hint" id="heatHint">近一年</span>
@@ -764,7 +842,7 @@
     </div>
 
     <!-- 第二大脑 -->
-    <div class="card span-12">
+    <div class="card span-12" data-tab="notes">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5a3 3 0 00-3 3 3 3 0 00-1 5.8V17a3 3 0 003 3h2a3 3 0 003-3v-3.2A3 3 0 0015 8a3 3 0 00-3-3z"/><path d="M12 5v15"/></svg>
         第二大脑 <span class="hint" id="noteHint">0 条</span>
@@ -786,7 +864,7 @@
     </div>
 
     <!-- 总结 -->
-    <div class="card span-12">
+    <div class="card span-12" data-tab="me">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
         保姆日报 <span class="hint" style="cursor:pointer" id="copyReport">点击复制</span>
@@ -795,7 +873,7 @@
     </div>
 
     <!-- 设置 -->
-    <div class="card span-12">
+    <div class="card span-12" data-tab="me">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.7 1.7 0 008 19.4a1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H2a2 2 0 110-4h.1A1.7 1.7 0 004.6 8a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V2a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H22a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
         保姆设定 <span class="hint">改完立刻生效</span>
@@ -833,6 +911,29 @@
     <span>数据只留本机 localStorage，不上传</span>
   </div>
 </div>
+
+<nav class="tabbar" id="tabbar" role="tablist" aria-label="主导航">
+  <button type="button" data-tab="today" class="on" role="tab" aria-selected="true">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <span>今天</span>
+  </button>
+  <button type="button" data-tab="tasks" role="tab" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    <span>任务</span>
+  </button>
+  <button type="button" data-tab="focus" role="tab" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    <span>专注</span>
+  </button>
+  <button type="button" data-tab="notes" role="tab" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    <span>记录</span>
+  </button>
+  <button type="button" data-tab="me" role="tab" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 21a7 7 0 0114 0"/></svg>
+    <span>我的</span>
+  </button>
+</nav>
 
 <div class="modal" id="setupModal" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
   <div class="sheet">
@@ -1403,7 +1504,7 @@ function renderStreak(){
   }
 }
 function renderHeat(){
-  const weeks = 52;
+  const weeks = window.innerWidth <= 720 ? 16 : 52;   // 手机上只看最近 16 周，免得横着滑
   const today = new Date(); today.setHours(0,0,0,0);
   const dow = (today.getDay() + 6) % 7;
   const start = new Date(today); start.setDate(today.getDate() - dow - (weeks - 1) * 7);
@@ -1425,6 +1526,8 @@ function renderHeat(){
     cells.push(`<i data-lv="${lv}" class="${k === dkey() ? 'today' : ''}" title="${tip}"></i>`);
   }
   $('#heat').innerHTML = cells.join('');
+  const hint = $('#heatHint');
+  if(hint) hint.textContent = weeks > 20 ? '近一年' : '近 16 周';
 }
 function renderBars(){
   const days = [];
@@ -2379,6 +2482,22 @@ function seedDemo(){
   ];
 }
 
+/* ---------- 手机端 Tab ---------- */
+const TABS = ['today', 'tasks', 'focus', 'notes', 'me'];
+function setTab(t){
+  if(!TABS.includes(t)) t = 'today';
+  document.body.dataset.tab = t;
+  document.querySelectorAll('#tabbar button').forEach(b => {
+    const on = b.dataset.tab === t;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  if(window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.querySelectorAll('#tabbar button').forEach(b => {
+  b.addEventListener('click', () => setTab(b.dataset.tab));
+});
+
 /* ---------- 启动 ---------- */
 (function init(){
   // 立绘：预加载 + 缺失时回落 SVG
@@ -2397,6 +2516,7 @@ function seedDemo(){
 
   renderAll();
   renderTaskTpl();
+  setTab(new URLSearchParams(location.search).get('tab') || 'today');
   bindSettings();
   applyTheme(FORCE_THEME || state.settings.theme || 'auto', false);
   registerSW();

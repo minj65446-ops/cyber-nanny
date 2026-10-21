@@ -34,7 +34,7 @@ except ImportError:
 
 APP_NAME = "诺诺"
 APP_SUB = "赛博管家"
-APP_VER = "3.1"
+APP_VER = "3.2"
 PANEL_URL = "https://minj65446-ops.github.io/cyber-nanny/"
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
