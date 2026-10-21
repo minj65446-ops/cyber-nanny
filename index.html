@@ -405,6 +405,28 @@
   .card h2 .h-act:hover{border-color:var(--accent);color:var(--accent)}
   .card h2 .h-act.on{background:var(--accent);border-color:var(--accent);color:#fff}
 
+  /* ---------- 引导 / 快捷添加 ---------- */
+  .setup-group{margin-bottom:14px}
+  .setup-label{font-size:11px;color:var(--ink-3);letter-spacing:.3px;margin-bottom:7px}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{
+    font:inherit;font-size:12px;padding:8px 12px;border-radius:9px;cursor:pointer;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);transition:.15s;
+  }
+  .seg button:hover{border-color:var(--accent);color:var(--accent)}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .setup-preview{
+    font-size:12px;color:var(--ink-2);background:var(--panel-2);border:1px dashed var(--line);
+    border-radius:10px;padding:11px 13px;line-height:1.75;margin-top:4px;
+  }
+  .setup-preview b{color:var(--ink)}
+  .quick-add{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 12px}
+  .quick-add button{
+    font:inherit;font-size:11.5px;padding:5px 11px;border-radius:99px;cursor:pointer;
+    border:1px dashed var(--line-2);background:transparent;color:var(--ink-3);transition:.15s;
+  }
+  .quick-add button:hover{border-style:solid;border-color:var(--accent);color:var(--accent)}
+
   /* ---------- 弹层 / 快捷键 ---------- */
   .modal{
     position:fixed;inset:0;z-index:120;display:none;place-items:center;padding:20px;
@@ -573,7 +595,7 @@
       <div class="logo">CN</div>
       <div>
         <h1>诺诺</h1>
-        <span>赛博管家 · NONO v3.0</span>
+        <span>赛博管家 · NONO v3.1</span>
       </div>
     </div>
     <div class="clock"><b id="clock">--:--</b> <span id="datestr"></span></div>
@@ -637,10 +659,11 @@
         今日任务 <span class="hint" id="taskHint">0 / 0</span>
       </h2>
       <div class="task-add">
-        <input type="text" id="taskInput" placeholder="要干什么？写具体点，别写“努力”这种废话" maxlength="80" />
+        <input type="text" id="taskInput" placeholder="直接写「明天18点 交周报」，时间会自动拆出来" maxlength="80" />
         <input type="datetime-local" id="taskDue" />
         <button class="btn" id="addTask">加进去</button>
       </div>
+      <div class="quick-add" id="taskTpl"></div>
       <div class="tasks" id="taskList"></div>
     </div>
 
@@ -792,6 +815,7 @@
         <label class="switch" id="voiceSwitch"><span class="sw"></span>语音播报</label>
         <label class="switch" id="notifySwitch"><span class="sw"></span>桌面通知</label>
         <div style="display:flex;gap:8px;align-items:flex-end">
+          <button class="btn ghost tiny" id="setupBtn" style="flex:1">重新引导</button>
           <button class="btn ghost tiny" id="exportBtn" style="flex:1">导出数据</button>
           <button class="btn ghost tiny" id="importBtn" style="flex:1">导入数据</button>
           <button class="btn ghost tiny" id="resetBtn" style="flex:1;color:var(--danger)">清空重来</button>
@@ -803,10 +827,43 @@
   </div>
 
   <div class="foot">
-    <span>NONO v3.0 · MIT License</span>
+    <span>NONO v3.1 · MIT License</span>
     <span>按 <kbd>?</kbd> 查看快捷键</span>
     <span>立绘为 AI 生成，可替换 assets/ 内同名图片换成你自己的角色</span>
     <span>数据只留本机 localStorage，不上传</span>
+  </div>
+</div>
+
+<div class="modal" id="setupModal" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+  <div class="sheet">
+    <h3 id="setupTitle">30 秒配好，之后不用管</h3>
+    <p class="sub">回答两个问题，我把作息、习惯和今天的任务一起填上。之后随时能改，也能删。</p>
+
+    <div class="setup-group">
+      <div class="setup-label">你的作息</div>
+      <div class="seg" id="segWake">
+        <button data-v="early">早起 6:30–22:30</button>
+        <button data-v="normal" class="on">正常 7:30–23:30</button>
+        <button data-v="night">夜猫 9:00–01:00</button>
+      </div>
+    </div>
+
+    <div class="setup-group">
+      <div class="setup-label">主要盯什么</div>
+      <div class="seg" id="segGoal">
+        <button data-v="study">学习</button>
+        <button data-v="work" class="on">工作</button>
+        <button data-v="fit">健身</button>
+        <button data-v="mix">都要</button>
+      </div>
+    </div>
+
+    <div class="setup-preview" id="setupPreview">—</div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn ghost" id="skipSetup" style="flex:1">跳过，我自己来</button>
+      <button class="btn" id="applySetup" style="flex:1.3">就这样，开始</button>
+    </div>
   </div>
 </div>
 
@@ -951,6 +1008,7 @@ const DEFAULT_STATE = {
   daily: defaultDaily(),
   tasks: [],
   notes: [],
+  onboarded: false,
   archive: {},
   totalPoints: 0,
   settings: {
@@ -975,7 +1033,13 @@ function load(){
   try{
     const raw = localStorage.getItem(KEY);
     if(!raw) return structuredClone(DEFAULT_STATE);
-    let s = Object.assign(structuredClone(DEFAULT_STATE), JSON.parse(raw));
+    const parsed = JSON.parse(raw);
+    let s = Object.assign(structuredClone(DEFAULT_STATE), parsed);
+    // 老版本没有 onboarded 字段：已经有数据就当作配置过了，别再弹引导
+    if(parsed.onboarded === undefined){
+      s.onboarded = (s.tasks || []).length > 0 || (s.notes || []).length > 0
+                 || Object.keys(s.archive || {}).length > 0;
+    }
     s.settings = Object.assign({}, DEFAULT_STATE.settings, s.settings || {});
     if(!Array.isArray(s.settings.habits) || !s.settings.habits.length) s.settings.habits = defaultHabits();
     s.settings.pomo = Object.assign({}, DEFAULT_STATE.settings.pomo, s.settings.pomo || {});
@@ -1588,21 +1652,173 @@ $('#copyReview').addEventListener('click', async () => {
   catch(e){ toast('复制失败，手动选一下吧'); }
 });
 
+/* ---------- 首次引导：30 秒生成一套能直接用的配置 ---------- */
+const SETUP_CLOCK = {
+  early:  { wake: '06:30', sleep: '22:30' },
+  normal: { wake: '07:30', sleep: '23:30' },
+  night:  { wake: '09:00', sleep: '01:00' }
+};
+const SETUP_HABITS = {
+  study: [['按时起床','sun',15],['专注 2 小时','book',12],['背 30 个单词','star',10],['运动 20 分钟','bolt',10],['按时睡觉','moon',10]],
+  work:  [['按时起床','sun',15],['先做最重要的一件事','flag',12],['每小时起来走走','repeat',8],['运动 20 分钟','bolt',10],['按时睡觉','moon',10]],
+  fit:   [['按时起床','sun',15],['运动 40 分钟','dumbbell',12],['走够 8000 步','bolt',10],['少喝含糖饮料','heart',8],['按时睡觉','moon',10]],
+  mix:   [['按时起床','sun',15],['运动 20 分钟','bolt',10],['阅读 / 学习','book',10],['按时睡觉','moon',10],['喝够 8 杯水','heart',8]]
+};
+const SETUP_TASKS = {
+  study: ['列出今天要复习的三章', '做一套真题', '整理错题本'],
+  work:  ['列出今天必须完成的三件事', '清掉邮件和消息', '复盘今天卡在哪'],
+  fit:   ['热身 5 分钟', '完成今天的训练', '记录体重和饮食'],
+  mix:   ['先做最重要的一件事', '运动 20 分钟', '读 10 页书']
+};
+let setupWake = 'normal', setupGoal = 'work';
+
+function setupPreview(){
+  const clock = SETUP_CLOCK[setupWake];
+  const habits = SETUP_HABITS[setupGoal].map(h => h[0]);
+  $('#setupPreview').innerHTML =
+    `将生成 <b>${habits.length} 个习惯</b>：${habits.join('、')}<br>` +
+    `作息 <b>${clock.wake} 起床 / ${clock.sleep} 睡觉</b>，喝水目标 8 杯<br>` +
+    `顺手放 <b>3 个今天的任务</b>，不满意随时删`;
+}
+function openSetup(){
+  setupPreview();
+  $('#setupModal').classList.add('open');
+}
+function closeSetup(){ $('#setupModal').classList.remove('open'); }
+
+function applySetup(){
+  const clock = SETUP_CLOCK[setupWake];
+  const s = state.settings;
+  s.wake = clock.wake;
+  s.sleep = clock.sleep;
+  s.waterGoal = 8;
+  s.habits = SETUP_HABITS[setupGoal].map(([name, icon, points], i) => ({
+    id: 'h' + Date.now().toString(36) + i, name, icon, points
+  }));
+  state.tasks = SETUP_TASKS[setupGoal].map((title, i) => ({
+    id: 't' + Date.now().toString(36) + i, title, due: '', done: false
+  }));
+  state.onboarded = true;
+  save();
+  closeSetup();
+  // 设置面板里的输入框同步（不重新绑定事件，避免重复监听）
+  $('#setWake').value = s.wake;
+  $('#setSleep').value = s.sleep;
+  $('#setWater').value = s.waterGoal;
+  renderAll();
+  toast('配好了，今天先把这三件事做掉');
+  say('praise', { force: true });
+}
+
+/* ---------- 引导的交互 ---------- */
+document.querySelectorAll('#segWake button').forEach(b => {
+  b.addEventListener('click', () => {
+    setupWake = b.dataset.v;
+    document.querySelectorAll('#segWake button').forEach(x => x.classList.toggle('on', x === b));
+    setupPreview();
+  });
+});
+document.querySelectorAll('#segGoal button').forEach(b => {
+  b.addEventListener('click', () => {
+    setupGoal = b.dataset.v;
+    document.querySelectorAll('#segGoal button').forEach(x => x.classList.toggle('on', x === b));
+    setupPreview();
+  });
+});
+$('#applySetup').addEventListener('click', applySetup);
+$('#skipSetup').addEventListener('click', () => {
+  state.onboarded = true;
+  save(); closeSetup();
+  toast('行，那你自己来。需要时在设置里点「重新引导」');
+});
+$('#setupModal').addEventListener('click', e => { if(e.target.id === 'setupModal') closeSetup(); });
+
+/* ---------- 任务输入：从一句话里拆出时间 ---------- */
+function localIsoOf(d){
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function parseTaskInput(raw){
+  let text = String(raw || '').trim();
+  let due = null;
+  const now = new Date();
+  const at = (base, h, m) => { const x = new Date(base); x.setHours(h, m || 0, 0, 0); return x; };
+  let m;
+
+  if((m = text.match(/(\d{1,3})\s*分钟\s*(?:后|以后|之后)/))){
+    due = new Date(Date.now() + (+m[1]) * 60000);
+    text = text.replace(m[0], '');
+  }else if((m = text.match(/(\d{1,2})\s*(?:个)?\s*小时\s*(?:后|以后|之后)/))){
+    due = new Date(Date.now() + (+m[1]) * 3600000);
+    text = text.replace(m[0], '');
+  }else{
+    let day = null;
+    if((m = text.match(/(大后天|后天|明天|今天)/))){
+      const off = { '今天': 0, '明天': 1, '后天': 2, '大后天': 3 }[m[1]];
+      day = new Date(now); day.setDate(day.getDate() + off);
+      text = text.replace(m[0], '');
+    }else if((m = text.match(/(下)?(?:周|星期|礼拜)([一二三四五六日天])/))){
+      const map = { 一:1, 二:2, 三:3, 四:4, 五:5, 六:6, 日:0, 天:0 };
+      const target = map[m[2]];
+      day = new Date(now);
+      let diff = (target - day.getDay() + 7) % 7;
+      if(diff === 0) diff = 7;
+      if(m[1]) diff += 7;
+      day.setDate(day.getDate() + diff);
+      text = text.replace(m[0], '');
+    }
+    const tm = text.match(/(凌晨|早上|上午|中午|下午|晚上)?\s*(\d{1,2})\s*(?:点|[:：])\s*(\d{1,2})?\s*分?/);
+    if(tm){
+      let h = +tm[2], min = tm[3] ? +tm[3] : 0;
+      const seg = tm[1] || '';
+      if((seg === '下午' || seg === '晚上') && h < 12) h += 12;
+      if(seg === '中午' && h < 11) h += 12;
+      if(h >= 0 && h <= 23){
+        due = at(day || now, h, min);
+        if(!day && due <= now) due.setDate(due.getDate() + 1);   // 没写哪天、点又过了 → 明天
+        text = text.replace(tm[0], '');
+      }
+    }else if(day){
+      due = at(day, 9, 0);          // 只写了“明天”，默认早上九点
+    }
+  }
+
+  text = text.replace(/\s{2,}/g, ' ').replace(/^[，,、\s]+|[，,、\s]+$/g, '').trim();
+  return { title: text || String(raw || '').trim(), due: due ? localIsoOf(due) : '' };
+}
+
 /* ---------- 交互：任务 ---------- */
-function addTask(){
-  const inp = $('#taskInput'), due = $('#taskDue');
-  const title = inp.value.trim();
-  if(!title){ toast('写个具体的事，别只按回车'); return; }
+function pushTask(title, due){
   state.tasks.unshift({
     id: 't' + Date.now() + Math.random().toString(36).slice(2, 6),
-    title, due: due.value || '', done: false
+    title, due: due || '', done: false
   });
-  inp.value = ''; due.value = '';
   save(); renderTasks();
+}
+const TASK_TPL = ['写周报', '运动 20 分钟', '读 10 页书', '收拾桌面', '准备明天的衣服'];
+function renderTaskTpl(){
+  const box = $('#taskTpl');
+  if(!box) return;
+  box.innerHTML = TASK_TPL.map(t => `<button data-tpl="${escapeHtml(t)}">+ ${escapeHtml(t)}</button>`).join('');
+}
+function addTask(){
+  const inp = $('#taskInput'), dueEl = $('#taskDue');
+  const raw = inp.value.trim();
+  if(!raw){ toast('写个具体的事，别只按回车'); return; }
+  // 手动选了日期就以手动为准，否则从这句话里拆
+  const parsed = dueEl.value ? { title: raw, due: dueEl.value } : parseTaskInput(raw);
+  pushTask(parsed.title, parsed.due);
+  inp.value = ''; dueEl.value = '';
+  toast(parsed.due ? '已加入 · 截止 ' + fmtDue(parsed.due) : '已加入任务');
   say('praise', { force: true });
 }
 $('#addTask').addEventListener('click', addTask);
 $('#taskInput').addEventListener('keydown', e => { if(e.key === 'Enter') addTask(); });
+$('#taskTpl').addEventListener('click', e => {
+  const b = e.target.closest('[data-tpl]'); if(!b) return;
+  pushTask(b.dataset.tpl);
+  toast('已加入 · ' + b.dataset.tpl);
+});
 
 $('#taskList').addEventListener('click', e => {
   const row = e.target.closest('.task'); if(!row) return;
@@ -1985,6 +2201,10 @@ function bindSettings(){
     $('#notifySwitch').classList.toggle('on', s.notify);
     save();
   });
+  $('#setupBtn').addEventListener('click', () => {
+    if(state.tasks.length && !confirm('重新引导会替换当前的习惯和任务列表，继续？')) return;
+    openSetup();
+  });
   $('#resetBtn').addEventListener('click', () => {
     if(!confirm('清空所有数据？包括任务、积分和历史记录。')) return;
     localStorage.removeItem(KEY);
@@ -2176,6 +2396,7 @@ function seedDemo(){
   if((location.search || '').includes('demo=1')) seedDemo();
 
   renderAll();
+  renderTaskTpl();
   bindSettings();
   applyTheme(FORCE_THEME || state.settings.theme || 'auto', false);
   registerSW();
@@ -2189,6 +2410,7 @@ function seedDemo(){
   restorePomo();
   renderPomo();
   setTimeout(() => say('greet', { force: true }), 600);
+  if(!state.onboarded && !demoMode) setTimeout(openSetup, 500);
   // 首次进入请求语音上下文授权不算必要；保持静默
   document.addEventListener('visibilitychange', () => {
     if(!document.hidden){

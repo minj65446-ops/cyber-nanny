@@ -34,7 +34,7 @@ except ImportError:
 
 APP_NAME = "诺诺"
 APP_SUB = "赛博管家"
-APP_VER = "3.0"
+APP_VER = "3.1"
 PANEL_URL = "https://minj65446-ops.github.io/cyber-nanny/"
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -112,7 +112,10 @@ IMAGES = {
 DEFAULT_CFG = {
     "x": None, "y": None, "scale": 0.9, "topmost": True,
     "persona": "savage", "quiet": False, "pomos": 0, "pomo_date": "",
+    "daily": {},          # 桌宠自己的轻量打卡，跨天自动重置
 }
+
+CHECKS = [("wake", "起床"), ("exercise", "运动 20 分钟"), ("read", "阅读 / 学习"), ("sleep", "按时睡觉")]
 
 
 # ---------------------------------------------------------------- 工具
@@ -469,6 +472,14 @@ class DeskPet:
         """菜单单独构建，方便测试，也避免 tk_popup 把逻辑裹在里面。"""
         m = tk.Menu(self.root, tearoff=0, font=("Microsoft YaHei", 9))
         m.add_command(label="打开面板（双击我也可以）", command=self.open_panel)
+        d = self._today()
+        ck = tk.Menu(m, tearoff=0)
+        for key, label in CHECKS:
+            ck.add_command(label=("✓ " if d.get(key) else "　 ") + label,
+                           command=lambda k=key: self.toggle_check(k))
+        ck.add_separator()
+        ck.add_command(label=f"喝水 +1（{d.get('water', 0)}/8）", command=self.add_water)
+        m.add_cascade(label=f"今日打卡 {self.check_done()}/5", menu=ck)
         m.add_separator()
         if self.pomo_end:
             left = max(0, int(self.pomo_end - time.time()))
@@ -561,6 +572,45 @@ class DeskPet:
 
     # ---------------------------------------------------------- 番茄
 
+    # ---------------------------------------------------------- 打卡
+
+    def _today(self):
+        key = time.strftime("%Y-%m-%d")
+        d = self.cfg.get("daily") or {}
+        if d.get("date") != key:
+            d = {"date": key, "wake": False, "water": 0,
+                 "exercise": False, "read": False, "sleep": False}
+            self.cfg["daily"] = d
+            save_cfg(self.cfg)
+        return d
+
+    def check_done(self):
+        d = self._today()
+        n = sum(1 for k, _ in CHECKS if d.get(k))
+        if int(d.get("water") or 0) >= 8:
+            n += 1
+        return n
+
+    def toggle_check(self, key):
+        d = self._today()
+        d[key] = not d.get(key)
+        save_cfg(self.cfg)
+        label = dict(CHECKS).get(key, key)
+        if d[key]:
+            self.say("praise", text=f"{label} 记上了。今天第 {self.check_done()} 项。", hold=4, expr="happy")
+            beep()
+        else:
+            self.say("nag", text=f"{label} 撤销了。别自己骗自己。", hold=4, expr="angry")
+
+    def add_water(self):
+        d = self._today()
+        d["water"] = min(8, int(d.get("water") or 0) + 1)
+        save_cfg(self.cfg)
+        self.say("water", text=f"第 {d['water']} 杯。喝完继续。", hold=4, expr="happy")
+        beep()
+
+    # ---------------------------------------------------------- 番茄
+
     def pomo_start(self, mins):
         self.pomo_len = mins * 60
         self.pomo_end = time.time() + self.pomo_len
@@ -575,6 +625,12 @@ class DeskPet:
 
     def _tick(self):
         now = time.time()
+        day = time.strftime("%Y-%m-%d")
+        if getattr(self, "_day", day) != day:
+            self._day = day
+            self._today()
+            if not self.line:
+                self._show_status()
         self._ticks = getattr(self, "_ticks", 0) + 1
 
         # 再次双击启动时，第二个实例只会留下一个信号文件，这里负责把自己叫回来
@@ -632,12 +688,12 @@ class DeskPet:
                 nxt = t
                 break
         pomos = self.cfg.get("pomos") if self.cfg.get("pomo_date") == time.strftime("%Y-%m-%d") else 0
-        parts = [hm]
-        if nxt:
-            parts.append(f"下次提醒 {nxt}")
+        parts = [hm, f"打卡 {self.check_done()}/5"]
         if pomos:
-            parts.append(f"今日 {pomos} 个番茄")
-        self.canvas.itemconfigure(self.cv_text, text=" · ".join(parts), )
+            parts.append(f"番茄 {pomos}")
+        if nxt and len(parts) < 3:
+            parts.append(f"下次 {nxt}")
+        self.canvas.itemconfigure(self.cv_text, text=" · ".join(parts))
         self._set_expr("sleepy" if (int(hm[:2]) >= 23 or int(hm[:2]) < 6) else "normal")
 
     def _blink_loop(self):
