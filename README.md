@@ -1,6 +1,6 @@
 # CYBER NANNY · 赛博保姆
 
-> 一个会盯着你干活的本地网页应用。打卡、任务、番茄钟、久坐提醒、积分惩罚、毒舌点评，全在一个 HTML 文件里。
+> 一个会盯着你干活的本地网页应用。打卡、任务、番茄钟、久坐提醒、积分惩罚、断链保护、毒舌点评，全在一个 HTML 文件里。
 
 **在线试用** → <https://minj65446-ops.github.io/cyber-nanny/> ｜ 想看满数据的样子，加 `?demo=1`
 
@@ -9,6 +9,7 @@
 ![HTML](https://img.shields.io/badge/single--file-HTML-5546ff)
 ![no deps](https://img.shields.io/badge/dependencies-none-00b3a4)
 ![offline](https://img.shields.io/badge/offline-ready-5546ff)
+![PWA](https://img.shields.io/badge/PWA-installable-5546ff)
 ![license](https://img.shields.io/badge/license-MIT-12141c)
 
 ---
@@ -31,16 +32,34 @@
 |---|---|
 | 每日打卡 | 默认起床 / 运动 / 阅读 / 睡觉，可增删自定义习惯，每个习惯独立计分 |
 | 喝水 | 8 杯可点，逐杯加 3 分，目标数可改（最多 16） |
-| 任务清单 | 支持截止时间，逾期变红并扣 12 分，逾期补完只算半分 |
-| 番茄钟 | 15 / 25 / 45 分钟 + 工作-休息循环（短休 / 长休），完成加 10 分，进度跨刷新可恢复 |
+| 任务清单 | 支持截止时间，逾期变红并扣 12 分（逾期补完只算半分），逾期的自动顶到最前 |
+| 番茄钟 | 15 / 25 / 45 分钟 + 工作-休息循环（短休 / 长休），完成加 10 分，进度跨刷新可恢复，运行中标签页标题显示倒计时 |
 | 久坐提醒 | 默认 45 分钟，超时提示音 + 台词，可调 10–180 分钟 |
-| 积分体系 | 正负都记，负数时顶栏变红；逾期等所有扣分统一计入累计积分 |
+| 积分体系 | 正负都记，负数时顶栏变红；所有扣分统一计入累计积分，撤销完成按当初实际得分回退 |
 | 四档人格 | 毒舌总管 / 温柔姐姐 / 冷面机械 / 军训教官，各一套台词库 |
-| 语音播报 | 开关在「保姆设定」，走浏览器 TTS |
-| 保姆日报 | 自动生成五段式总结，一键复制发群里交代 |
-| 周趋势 | 近 7 日积分柱状图，今天高亮 |
-| 第二大脑 | 随手记 + 本地关键词自动打标签（工作/学习/健康/钱/关系/灵感/情绪/待办）+ 全文与标签检索 + 一键转任务 + 阶段总结 |
+| 断链保护 | 每天可请一次假：不加分，但连续记录不断；每周额度 1 张，用完显示「已用尽」 |
+| 年度热力图 | 近 52 周，四档色阶，悬停看当天分数；旁边给当前连续 / 最长连续 / 近 30 天达标率 / 本周请假卡 |
+| 薄弱日分析 | 自动统计近 8 周每天达标率，点名你最容易掉链子的星期几 |
+| 保姆日报 | 五段式总结，一键复制发群里交代 |
+| 第二大脑 | 随手记 + 本地关键词自动打标签（8 类）+ 全文与标签检索 + 一键转任务 + 阶段总结（含本周 vs 上周） |
+| 深色模式 | 跟随系统 / 强制浅色 / 强制深色，首帧前生效不闪白 |
+| 桌面通知 | 番茄结束、久坐超时在页面切后台时弹系统通知（需授权） |
+| PWA | 可安装到桌面 / 主屏，Service Worker 离线可用 |
 | 数据 | 只存 localStorage，跨天自动归档，可导出 / 导入 JSON |
+
+## 快捷键
+
+按 `?` 随时调出这张表。
+
+| 键 | 作用 |
+|---|---|
+| `N` | 记一条到第二大脑 |
+| `/` | 搜索记录 |
+| `P` | 开始 / 暂停专注 |
+| `W` | 喝一杯水 |
+| `T` | 聚焦任务输入框 |
+| `D` | 切换浅色 / 深色 |
+| `?` | 快捷键面板，`Esc` 关闭 |
 
 ## 快速开始
 
@@ -57,7 +76,18 @@ cd cyber-nanny
 python -m http.server 8080   # 然后访问 http://localhost:8080
 ```
 
-想直接看满数据的界面：打开 `index.html?demo=1`（演示数据不写盘）。
+> 用 `http.server` 或直接访问线上地址时，浏览器会出现「安装」入口 —— 装到桌面后断网也能开，数据仍在本地。
+> `file://` 下 Service Worker 无法注册，安装按钮不会出现，其余功能照常。
+
+想直接看满数据的界面：打开 `index.html?demo=1`（演示数据不写盘）。深色预览加 `&theme=dark`。
+
+## 深色模式
+
+![dark](docs/screenshot-dark.png)
+
+## 断链保护怎么算
+
+连续天数只认「当天完成度 ≥ 60%」或「当天请假」。今天还没达标不算断链，从昨天往前数；一旦达标就把今天算进去。请假卡每周一张，跨天自动回满，不会因为出差或生病把攒了几周的链子清零。
 
 ## 换掉她的脸
 
@@ -72,7 +102,7 @@ assets/
 ```
 
 建议正方形、512×512 以上、人物居中偏上（头像按 `object-position: 50% 16%` 裁切）。
-图片缺失时不会白屏，会自动回落到内置的 SVG 机器人头像。
+图片缺失时不会白屏，会自动回落到内置的 SVG 机器人头像。`icon-*.png` 是安装图标，换角色后建议一并重做。
 
 ## 常驻提醒（可选）
 
@@ -94,27 +124,34 @@ python nanny_reminder.py
 ## 数据与隐私
 
 - 所有数据在浏览器 localStorage，key `cyberNanny.v1`，不上传任何地方
-- 没有统计、没有埋点、没有第三方请求
+- 没有统计、没有埋点、没有第三方请求；字体和图标全部本地
 - 「保姆设定 → 导出数据」拿到 JSON 备份，「清空重来」彻底删除
+- 桌面通知只在本地触发，不经过任何服务器
 
 ## 目录结构
 
 ```
 cyber-nanny/
-├── index.html            # 主应用（单文件，含全部 CSS/JS）
-├── assets/               # 四张表情差分
-├── docs/screenshot.png   # 截图
-├── nanny_reminder.py     # 常驻定时提醒脚本
-├── PERSONA.md            # AI 人格提示词
+├── index.html              # 主应用（单文件，含全部 CSS/JS）
+├── manifest.webmanifest    # PWA 清单
+├── sw.js                   # Service Worker：导航 network-first，静态资源 cache-first
+├── assets/                 # 四张表情差分 + 安装图标
+├── docs/                   # 截图（浅色 / 深色）
+├── nanny_reminder.py       # 常驻定时提醒脚本
+├── PERSONA.md              # AI 人格提示词
+├── CHANGELOG.md
 └── README.md
 ```
 
 ## Roadmap
 
-- [ ] 更长的历史视图（月视图 / 热力图）
+- [x] 更长的历史视图（年度热力图）
+- [x] 断链保护 / 请假卡
+- [x] 移动端 PWA + 离线
+- [x] 深色模式
 - [ ] 任务分类与权重
 - [ ] 多角色主题（换立绘即换人格）
-- [ ] 移动端添加到主屏的 PWA manifest
+- [ ] 月度报告导出成图片
 
 欢迎提 issue 或 PR，尤其是新的台词——现在的毒舌还不够狠。
 
@@ -122,6 +159,8 @@ cyber-nanny/
 
 代码 MIT。`assets/` 内的角色立绘为 AI 生成，随项目一同以 MIT 分发；如需商用请自行确认所在司法辖区的 AI 生成内容规定。
 
+更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+
 ---
 
-**English**: Cyber Nanny is a single-file, offline HTML app that nags you into finishing your day — habit check-ins, tasks with deadlines, a pomodoro timer, sit-still reminders, a points system with penalties, four nanny personas, and an anime mascot whose expression follows your behavior. No build step, no backend, data stays in `localStorage`.
+**English**: Cyber Nanny is a single-file, offline HTML app that nags you into finishing your day — habit check-ins, tasks with deadlines, a pomodoro timer, sit-still reminders, a points system with penalties, four nanny personas, and an anime mascot whose expression follows your behavior. v2 adds a year-long consistency heatmap, streak forgiveness (one excused day per week), dark mode, keyboard shortcuts, desktop notifications and PWA installability. No build step, no backend, data stays in `localStorage`.

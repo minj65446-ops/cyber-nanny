@@ -1,0 +1,21 @@
+{
+  "name": "赛博保姆 · CYBER NANNY",
+  "short_name": "赛博保姆",
+  "description": "会盯着你干活的赛博保姆：打卡、任务、番茄钟、久坐提醒、积分惩罚、第二大脑。数据只存本机。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#f4f5fa",
+  "theme_color": "#5546ff",
+  "categories": ["productivity", "lifestyle", "health"],
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
